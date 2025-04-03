@@ -1,10 +1,9 @@
 import { pgTable, serial, uuid, text, varchar, timestamp, pgEnum, integer } from 'drizzle-orm/pg-core';
-import { drizzle } from 'drizzle-orm/node-postgres';
-
 
 const roleEnum = pgEnum('role', ['admin', 'cekimSorumlusu', 'cekimPersoneli', 'spectator']); 
-const usersStatusEnum = pgEnum('status', ['online', 'away', 'offline']); 
-const withdrawalStatusEnum = pgEnum('status', ['approved', 'rejected']);
+const activityStatusEnum = pgEnum('activity_status', ['online', 'away', 'offline']); 
+const withdrawalStatusEnum = pgEnum('withdrawal_status', ['approved', 'rejected']);
+
 
 
 export const usersTable = pgTable("users", {
@@ -13,7 +12,7 @@ export const usersTable = pgTable("users", {
     email: varchar('email', { length: 255 }).notNull(),      
     hashed_password: text('hashed_password').notNull(),     
     role: roleEnum('role').notNull(),            
-    status: usersStatusEnum('status').notNull(),      
+    activity_status: activityStatusEnum('activity_status').notNull(),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -29,13 +28,13 @@ export const withdrawalsTable = pgTable("withdrawals", {
     requested_at: timestamp('requested_at', { withTimezone: true }).defaultNow().notNull(),
     concluded_at: timestamp('concluded_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-    status: withdrawalStatusEnum('status').notNull(),
+    withdrawal_status: withdrawalStatusEnum('withdrawal_status').notNull(),
     message: text('message').notNull(),
 });
 
 export const userStatusLogsTable = pgTable("user_status_logs", {
     id: serial('id').primaryKey(),
     user_id: integer('user_id').notNull(),
-    status: usersStatusEnum('status').notNull(),
+    activity_status: activityStatusEnum('activity_status').notNull(),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
