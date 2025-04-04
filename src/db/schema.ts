@@ -43,6 +43,7 @@ export const withdrawalsTable = pgTable("withdrawals", {
     amount: doublePrecision('amount').notNull(),
     requestedAt: timestamp('requested_at', { withTimezone: true }).notNull(),
     concludedAt: timestamp('concluded_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
     withdrawalStatus: withdrawalStatusEnum('withdrawal_status').notNull().default('pending'),
     message: text('message').notNull(),
