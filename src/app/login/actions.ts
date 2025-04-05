@@ -31,6 +31,7 @@ export async function login(username: string, password: string) {
 
         
         const otp = crypto.randomInt(100000, 999999).toString();
+        console.log(otp)
         await redis.set(`otp:${user[0].id}`, otp, 'EX', 300);
         
 

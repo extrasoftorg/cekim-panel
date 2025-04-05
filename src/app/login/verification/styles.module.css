@@ -1,0 +1,173 @@
+html,
+body {
+  overflow: hidden;
+  height: 100%;
+}
+
+.container {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background-color: #f9fafb;
+  padding: 1rem 1rem;
+}
+
+.card {
+  width: 100%;
+  max-width: 26rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  border-radius: 1rem;
+  background-color: white;
+  overflow: hidden;
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: scale(0.97);
+}
+
+.cardHeader {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: white;
+  text-align: center;
+}
+
+.cardTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.cardDescription {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  max-width: 90%;
+  margin: 0 auto;
+}
+
+.cardContent {
+  padding: 1.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.inputWrapper {
+  margin-bottom: 1.5rem;
+}
+
+.otpInputSingle {
+  width: 100%;
+  height: 3.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: white;
+  transition: all 0.2s ease;
+  padding: 0 0.75rem;
+  font-family: monospace;
+  box-sizing: border-box;
+}
+
+.otpInputSingle::placeholder {
+  letter-spacing: normal;
+  font-size: 1rem;
+  opacity: 0.6;
+  font-family: "Inter", sans-serif;
+}
+
+.otpInputSingle:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+  outline: none;
+}
+
+.verifyButton {
+  height: 3.25rem;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 1rem;
+}
+
+.verifyButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.verifyButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.verifyButton:disabled {
+  background: linear-gradient(135deg, #a5b4fc 0%, #c7d2fe 100%);
+  cursor: not-allowed;
+}
+
+.cardFooter {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.message {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.successMessage {
+  background-color: #d1fae5;
+  color: #065f46;
+  border-left: 4px solid #10b981;
+}
+
+.errorMessage {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-left: 4px solid #ef4444;
+}
+
+/* Responsive tasarım */
+@media (max-width: 480px) {
+  .otpInputSingle {
+    font-size: 1.25rem;
+    height: 3rem;
+  }
+
+  .cardTitle {
+    font-size: 1.25rem;
+  }
+
+  .cardDescription {
+    font-size: 0.8125rem;
+  }
+}
+
