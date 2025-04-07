@@ -24,8 +24,8 @@ const withdrawalStatusEnum = pgEnum('withdrawal_status', [
 
 export const usersTable = pgTable("users", {
     id: uuid('id').primaryKey(),                
-    username: varchar('username', { length: 255 }).notNull(),  
-    email: varchar('email', { length: 255 }).notNull(),      
+    username: varchar('username', { length: 255 }).notNull().unique(),  
+    email: varchar('email', { length: 255 }).notNull().unique(),      
     hashedPassword: text('hashed_password').notNull(),     
     role: roleEnum('role').notNull(),            
     activityStatus: activityStatusEnum('activity_status').notNull().default('offline'),

@@ -8,9 +8,9 @@ export default async function Home() {
     <div>
       <h1>Ana Sayfa</h1>
       {token ? (
-        <p>Hoş geldiniz! Oturum açılmış. Token: {token}</p>
+        <p>Oturum açıldı Token: {token}</p>
       ) : (
-        <p>Oturum açılmamış.</p>
+        <p>Oturum açılmamış</p>
       )}
     </div>
   );
