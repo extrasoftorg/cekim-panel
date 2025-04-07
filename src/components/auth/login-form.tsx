@@ -33,7 +33,7 @@ export default function LoginPage() {
       if (response.success && response.user) {
         console.log("Doğrulanan kullanıcı:", response.user)
         router.push(`/login/verification?id=${response.user.id}`)
-        // otp emaile gönderme kısmı olacak
+
       }
     } catch (error) {
       setMessage("Giriş yapılırken bir hata oluştu.")
