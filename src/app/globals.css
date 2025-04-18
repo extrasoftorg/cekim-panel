@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import '@shadcn/ui/dist/index.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -65,14 +64,15 @@
 }
 
 :root {
+  --primary: oklch(0.8 0.2 80);
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
+  --table: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -100,37 +100,37 @@
 }
 
 .dark {
+  --primary: rgb(201 145 53);
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0 0 0);
+  --table: #1a1a1a;
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: #1a1a1a;
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+
+  /* Bu satırları değiştirin */
+  --border: oklch(0.8 0.2 80 / 30%); /* Amber/altın rengi, %30 opaklıkla */
+  --input: oklch(0.8 0.2 80 / 20%); /* Amber/altın rengi, %20 opaklıkla */
+  --ring: oklch(0.8 0.2 80 / 50%); /* Amber/altın rengi, %50 opaklıkla */
+
+  /* Sidebar değişkenlerini de güncelleyin */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.8 0.2 80); /* Amber/altın rengi */
+  --sidebar-primary-foreground: oklch(0.205 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-border: oklch(0.8 0.2 80 / 30%); /* Amber/altın rengi, %30 opaklıkla */
+  --sidebar-ring: oklch(0.8 0.2 80 / 50%); /* Amber/altın rengi, %50 opaklıkla */
 }
 
 @layer base {
@@ -140,4 +140,105 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.glass-effect {
+  @apply bg-[color:var(--card)] border border-[color:var(--border)] rounded-lg p-6 overflow-x-auto;
+  background-color: color-mix(in srgb, var(--table) 70%, transparent); /* Opaklığı böyle verebiliriz */
+}
+
+.table-header {
+  @apply bg-[color:var(--secondary)];
+}
+
+/* Table head için özel stil */
+.table-head {
+  @apply text-[color:var(--primary)] px-4 py-3 text-center text-sm font-semibold; /* Boyutlar artırıldı */
+}
+
+/* Table cell için özel stil */
+.table-cell {
+  @apply px-4 py-3 text-center text-sm; /* Boyutlar artırıldı */
+}
+
+.table-note {
+  @apply break-words whitespace-normal max-w-[180px];
+}
+
+/* Personel kartları için ek stiller */
+.personel-card {
+  @apply transition-all duration-200;
+}
+
+.personel-card:hover {
+  @apply border-[color:var(--primary)] shadow-sm;
+  box-shadow: 0 0 8px rgba(var(--primary), 0.2);
+}
+
+/* Status indicator stilleri */
+.status-indicator {
+  @apply h-1.5 w-1.5 rounded-full;
+}
+
+.status-online {
+  @apply bg-green-500;
+}
+
+.status-away {
+  @apply bg-amber-500;
+}
+
+.status-offline {
+  @apply bg-gray-500;
+}
+
+/* Tablo boyutlandırma ve sabit kalması için */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-compact {
+  font-size: 0.95rem; /* 0.9rem'den 0.95rem'e artırıldı */
+  line-height: 1.35rem; /* 1.3rem'den 1.35rem'e artırıldı */
+}
+
+.table-compact th,
+.table-compact td {
+  padding: 0.65rem 0.9rem; /* 0.6rem 0.85rem'den artırıldı */
+}
+
+/* Butonlar için özel stil */
+.compact-btn {
+  @apply text-[11px] font-bold h-8 px-3 rounded-sm; /* text-[10px], px-2.5'den artırıldı */
+  border-radius: 0.25rem;
+}
+
+/* Dropdown menüler için özel stiller - önceki haline geri döndürüldü */
+.dropdown-menu-compact {
+  @apply text-xs py-0.5;
+  width: auto;
+  min-width: 140px; /* 150px'den 140px'e geri döndürüldü */
+}
+
+.dropdown-menu-compact .dropdown-item {
+  @apply px-2 py-1 text-xs; /* px-2.5 py-1.5'den px-2 py-1'e geri döndürüldü */
+}
+
+/* Filter bar için özel stiller - globals.css dosyasına ekleyin */
+.filter-input {
+  @apply h-10 text-sm;
+}
+
+.filter-button {
+  @apply h-10 text-sm font-medium;
+}
+
+.filter-select-trigger {
+  @apply h-10 text-sm;
+}
+
+/* Popover içeriği için düzeltme */
+.filter-date-popover {
+  @apply w-auto p-0;
 }

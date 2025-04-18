@@ -1,0 +1,1 @@
+ALTER TABLE "withdrawals" ALTER COLUMN "concluded_at" DROP NOT NULL;

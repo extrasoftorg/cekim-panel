@@ -8,7 +8,7 @@ import { cookies } from 'next/headers';
 export async function verifyOtp(userId: string, inputOtp: string) {
     try {
         const storedOtp = await redis.get(`otp:${userId}`);
-        console.log(storedOtp)
+        console.log('userId:', userId, 'storedOtp:', storedOtp);    
 
         if (!storedOtp) {
             return { success: false, message: 'OTP bulunamadı veya süresi doldu' };

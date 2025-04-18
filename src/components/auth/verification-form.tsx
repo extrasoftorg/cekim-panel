@@ -34,7 +34,7 @@ export default function VerificationPage() {
 
     const response = await verifyOtp(id, otp);
     if (response.success) {
-      router.push('/'); 
+      router.push('/');
     } else {
       setMessage(response.message);
     }

@@ -3,8 +3,7 @@ import WithdrawPage from '../../components/auth/withdraw-form'
 
 function page() {
   return (
-    <div><WithdrawPage/>
-    </div>
+    <div><WithdrawPage /></div>
   )
 }
 

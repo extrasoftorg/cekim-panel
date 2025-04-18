@@ -5,13 +5,22 @@ export default async function Home() {
   const token = cookieStore.get('token')?.value;
 
   return (
-    <div>
-      <h1>Ana Sayfa</h1>
-      {token ? (
-        <p>Oturum açıldı Token: {token}</p>
-      ) : (
-        <p>Oturum açılmamış</p>
-      )}
+    <div className="container mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-card text-card-foreground p-6 rounded-lg border border-border">
+          <h2 className="text-lg font-semibold mb-2">İstatistikler</h2>
+          <p>Dashboard içeriği burada yer alacak...</p>
+        </div>
+        <div className="bg-card text-card-foreground p-6 rounded-lg border border-border">
+          <h2 className="text-lg font-semibold mb-2">Özet</h2>
+          <p>Dashboard içeriği burada yer alacak...</p>
+        </div>
+        <div className="bg-card text-card-foreground p-6 rounded-lg border border-border">
+          <h2 className="text-lg font-semibold mb-2">Grafikler</h2>
+          <p>Dashboard içeriği burada yer alacak...</p>
+        </div>
+      </div>
     </div>
   );
 }

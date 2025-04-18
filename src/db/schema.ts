@@ -1,18 +1,18 @@
 import { pgTable, serial, uuid, text, varchar, timestamp, pgEnum, integer, doublePrecision } from 'drizzle-orm/pg-core';
-
+import { relations } from 'drizzle-orm';
 
 const roleEnum = pgEnum('role', [
-    'admin', 
-    'cekimSorumlusu', 
-    'cekimPersoneli', 
+    'admin',
+    'cekimSorumlusu',
+    'cekimPersoneli',
     'spectator'
-]); 
+]);
 
 const activityStatusEnum = pgEnum('activity_status', [
-    'online', 
-    'away', 
+    'online',
+    'away',
     'offline'
-]); 
+]);
 
 const withdrawalStatusEnum = pgEnum('withdrawal_status', [
     'pending',
@@ -23,11 +23,11 @@ const withdrawalStatusEnum = pgEnum('withdrawal_status', [
 
 
 export const usersTable = pgTable("users", {
-    id: uuid('id').primaryKey(),                
-    username: varchar('username', { length: 255 }).notNull().unique(),  
-    email: varchar('email', { length: 255 }).notNull().unique(),      
-    hashedPassword: text('hashed_password').notNull(),     
-    role: roleEnum('role').notNull(),            
+    id: uuid('id').primaryKey(),
+    username: varchar('username', { length: 255 }).notNull().unique(),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    hashedPassword: text('hashed_password').notNull(),
+    role: roleEnum('role').notNull(),
     activityStatus: activityStatusEnum('activity_status').notNull().default('offline'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -35,18 +35,20 @@ export const usersTable = pgTable("users", {
 
 export const withdrawalsTable = pgTable("withdrawals", {
     id: serial('id').primaryKey(),
-    playerUsername: varchar('player_username', { length: 255 }).notNull(), 
-    playerFullname: varchar('player_fullname', { length: 255 }).notNull(), 
+    playerUsername: varchar('player_username', { length: 255 }).notNull(),
+    playerFullname: varchar('player_fullname', { length: 255 }).notNull(),
     note: text('note').notNull(),
     transactionId: integer('transaction_id').notNull(),
     method: varchar('method', { length: 255 }).notNull(),
     amount: doublePrecision('amount').notNull(),
     requestedAt: timestamp('requested_at', { withTimezone: true }).notNull(),
-    concludedAt: timestamp('concluded_at', { withTimezone: true }).notNull(),
+    concludedAt: timestamp('concluded_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
     withdrawalStatus: withdrawalStatusEnum('withdrawal_status').notNull().default('pending'),
     message: text('message').notNull(),
+    handlingBy: uuid('handling_by').references(() => usersTable.id, { onDelete: 'set null' }),
+    handlerUsername: text('handler_username'),
 });
 
 export const userStatusLogsTable = pgTable("user_status_logs", {
@@ -55,3 +57,14 @@ export const userStatusLogsTable = pgTable("user_status_logs", {
     activityStatus: activityStatusEnum('activity_status').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
+
+export const withdrawalsRelations = relations(withdrawalsTable, ({ one }) => ({
+    handler: one(usersTable, {
+        fields: [withdrawalsTable.handlingBy],
+        references: [usersTable.id],
+    }),
+}));
+
+export const usersRelations = relations(usersTable, ({ many }) => ({
+    withdrawals: many(withdrawalsTable),
+}));
