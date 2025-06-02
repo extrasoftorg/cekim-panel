@@ -27,7 +27,38 @@ export default function RootLayout({
               {!isLoginPage && <Navbar />}
               <main className="flex-1 py-6 px-4">{children}</main>
             </div>
-            <Toaster />
+            <Toaster
+              icons={{
+                success: (
+                  <div className="flex items-center">
+                    <svg
+                      className="w-5 h-5 text-white mr-2"
+                      fill="none"
+                      stroke="none"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle cx="12" cy="12" r="12" fill="#1eba4d" />
+                      <path stroke="white" strokeWidth="3" d="M7 12.5l3 3 6-6" />
+                    </svg>
+                  </div>
+                ),
+                error: (
+                  <div className="flex items-center">
+                    <svg
+                      className="w-5 h-5 text-white mr-2"
+                      fill="none"
+                      stroke="none"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle cx="12" cy="12" r="12" fill="red" />
+                      <path stroke="white" strokeWidth="3" d="M7 7l10 10M7 17L17 7" />
+                    </svg>
+                  </div>
+                ),
+              }}
+            />
           </ThemeProvider>
         </QueryClientProvider>
       </body>

@@ -7,7 +7,7 @@ import { db } from '@/db';
 import { usersTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-async function getCurrentUser() {
+export async function getCurrentUser() {
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
     if (!token) {
@@ -24,7 +24,6 @@ async function getCurrentUser() {
             return null;
         }
 
-        // Veritabanından kullanıcıyı sorgula
         const user = await db
             .select({ id: usersTable.id, role: usersTable.role, username: usersTable.username })
             .from(usersTable)

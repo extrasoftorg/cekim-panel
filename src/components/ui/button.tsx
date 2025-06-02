@@ -26,12 +26,17 @@ const buttonVariants = cva(
           "bg-green-400 text-white shadow-xs hover:bg-green-500 focus-visible:ring-green-300/50 dark:bg-green-500 dark:hover:bg-green-500",
         lightBlue:
           "bg-blue-300 text-white shadow-xs hover:bg-blue-400 focus-visible:ring-blue-200/50 dark:bg-blue-400 dark:hover:bg-blue-400",
-        blue:
-        "bg-purple-300 text-white hover:bg-purple-400 focus-visible:ring-purple-100",
+
+        lavender:
+          "bg-purple-200 text-purple-900 shadow-xs hover:bg-purple-300 focus-visible:ring-purple-200/50 dark:bg-purple-300 dark:text-purple-900 dark:hover:bg-purple-200",
+        lilac:
+          "bg-purple-300 text-white shadow-xs hover:bg-purple-400 focus-visible:ring-purple-200/50 dark:bg-purple-400 dark:hover:bg-purple-300",
+        softPurple:
+          "bg-violet-500 text-white shadow-xs hover:bg-violet-600 focus-visible:ring-violet-300/50",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        xs: "h-7 rounded-sm gap-1.5 px-2 has-[>svg]:px-2", 
+        xs: "h-7 rounded-sm gap-1.5 px-2 has-[>svg]:px-2",
         sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
         lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
         icon: "size-9",

@@ -5,9 +5,12 @@ import { useState } from "react"
 import { useRouter } from 'next/navigation';
 import { Inter } from "next/font/google"
 import { login } from "../../app/login/actions"
-import { EyeIcon, EyeOffIcon, LockIcon, UserIcon } from "lucide-react"
-import styles from "../../app/login/styles.module.css"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Eye, EyeOff, Lock, User } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -43,69 +46,80 @@ export default function LoginPage() {
   }
 
   const isSuccess = message.includes("başarılı") || message.includes("doğrulandı")
-  const messageClass = isSuccess ? styles.successMessage : styles.errorMessage
 
   return (
-    <div className={`${styles.container} ${inter.className}`}>
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.cardTitle}>Giriş Yap</h2>
-          <p className={styles.cardDescription}>Hesabınıza erişmek için giriş yapın</p>
-        </div>
-        <div className={styles.cardContent}>
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.formGroup}>
-              <label htmlFor="username" className={styles.label}>
-                Kullanıcı Adı
-              </label>
-              <div className={styles.inputWrapper}>
-                <div className={styles.inputIcon}>
-                  <UserIcon size={18} />
+    <div className={`flex min-h-screen items-center justify-center bg-background p-4 ${inter.className}`}>
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">Giriş Yap</CardTitle>
+          <CardDescription className="text-center">Hesabınıza erişmek için giriş yapın</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Kullanıcı Adı</Label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <User size={18} />
                 </div>
-                <input
+                <Input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Kullanıcı adınızı girin"
-                  className={styles.input}
+                  className="pl-10"
                   required
                 />
               </div>
             </div>
-            <div className={styles.formGroup}>
-              <label htmlFor="password" className={styles.label}>
-                Şifre
-              </label>
-              <div className={styles.inputWrapper}>
-                <div className={styles.inputIcon}>
-                  <LockIcon size={18} />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Şifre</Label>
+              </div>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <Lock size={18} />
                 </div>
-                <input
+                <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Şifrenizi girin"
-                  className={styles.input}
+                  className="pl-10"
                   required
                 />
-                <div className={styles.passwordToggle} onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
-                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  <span className="sr-only">{showPassword ? "Şifreyi gizle" : "Şifreyi göster"}</span>
+                </Button>
               </div>
             </div>
-            <button type="submit" className={styles.button} disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Giriş Yapılıyor..." : "Giriş Yap"}
-            </button>
+            </Button>
           </form>
-        </div>
+        </CardContent>
         {message && (
-          <div className={styles.cardFooter}>
-            <div className={`${styles.message} ${messageClass}`}>{message}</div>
-          </div>
+          <CardFooter>
+            <div
+              className={`w-full rounded-md p-3 text-center text-sm ${isSuccess
+                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                }`}
+            >
+              {message}
+            </div>
+          </CardFooter>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

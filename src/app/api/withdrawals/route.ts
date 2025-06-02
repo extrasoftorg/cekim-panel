@@ -3,8 +3,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/db/index';
-import { withdrawalsTable, usersTable } from '@/db/schema';
-import { eq, or, desc } from 'drizzle-orm';
+import { withdrawalsTable, usersTable, withdrawalTransfer } from '@/db/schema';
+import { eq, or, desc, sql } from 'drizzle-orm';
 import redis from '@/db/redis';
 
 const withdrawalSchema = z.object({
@@ -53,11 +53,18 @@ export async function GET(request: Request) {
         withdrawalStatus: withdrawalsTable.withdrawalStatus,
         handlingBy: withdrawalsTable.handlingBy,
         handlerUsername: usersTable.username,
+        hasTransfers: sql<boolean>`(SELECT COUNT(*) FROM withdrawal_transfers WHERE withdrawal_transfers.withdrawal_id = ${withdrawalsTable.id}) > 0`.mapWith(Boolean),
       })
       .from(withdrawalsTable)
       .leftJoin(usersTable, eq(withdrawalsTable.handlingBy, usersTable.id))
       .where(whereCondition)
       .orderBy(desc(withdrawalsTable.concludedAt));
+
+    withdrawals.forEach(withdrawal => {
+      if (withdrawal.handlingBy && !withdrawal.handlerUsername) {
+        console.log(`handlingBy dolu ama handlerUsername null: withdrawalId=${withdrawal.id}, handlingBy=${withdrawal.handlingBy}`);
+      }
+    });
 
     return NextResponse.json(withdrawals);
   } catch (error) {
@@ -76,14 +83,39 @@ export async function POST(request: Request) {
     const validatedData = withdrawalSchema.parse(body);
 
     const listLength = await redis.llen('active_personnel');
-    let assignedPersonnelId = null;
+    let assignedPersonnelId: string | null = null;
 
     if (listLength > 0) {
-      assignedPersonnelId = await redis.lpop('active_personnel');
-      if (assignedPersonnelId) {
-        await redis.rpush('active_personnel', assignedPersonnelId);
-        await redis.set('last_assigned_personnel', assignedPersonnelId);
+      // Tüm listeyi al ve çevrimiçi personel bulana kadar kontrol et
+      const personnelList = await redis.lrange('active_personnel', 0, -1);
+      let foundOnlinePersonnel = false;
+
+      for (let i = 0; i < personnelList.length; i++) {
+        const personnelId = personnelList[i];
+        const user = await db
+          .select({ id: usersTable.id, role: usersTable.role, activityStatus: usersTable.activityStatus })
+          .from(usersTable)
+          .where(eq(usersTable.id, personnelId))
+          .limit(1)
+          .then(res => res[0]);
+
+        if (user && user.role.toLowerCase() === 'cekimpersoneli' && user.activityStatus === 'online') {
+          assignedPersonnelId = personnelId;
+          foundOnlinePersonnel = true;
+
+          await redis.lrem('active_personnel', 1, personnelId);
+          await redis.rpush('active_personnel', personnelId);
+          await redis.set('last_assigned_personnel', personnelId);
+          break;
+        }
       }
+
+      if (!foundOnlinePersonnel) {
+        console.log('Hiç çevrimiçi personel bulunamadı, talep boşa atanıyor.');
+        assignedPersonnelId = null;
+      }
+    } else {
+      console.log('Aktif personel listesi boş, talep boşa atanıyor.');
     }
 
     const newWithdrawal = await db
@@ -110,9 +142,22 @@ export async function POST(request: Request) {
         .where(eq(usersTable.id, assignedPersonnelId))
         .limit(1)
         .then(res => res[0]);
-      message += ` ve ${assignedUser.username} (${assignedPersonnelId}) kişisine atandı`;
+      if (assignedUser) {
+        const withdrawalId = newWithdrawal[0].id
+        const redisKey = `withdrawal:assignment:${withdrawalId}`
+        await redis.hset(redisKey, {
+          id: assignedPersonnelId,
+          playerUsername: newWithdrawal[0].playerFullname,
+          transactionId: newWithdrawal[0].transactionId,
+          username: assignedUser.username,
+          assignedAt: new Date().toISOString(),
+        })
+        message += ` ve ${assignedUser.username} kişisine atandı`;
+      } else {
+        message += ', ancak atanan personel bulunamadı';
+      }
     } else {
-      message += ', ancak aktif çekim personeli bulunamadı';
+      message += ', ancak aktif çevrimiçi çekim personeli bulunamadı';
     }
 
     return NextResponse.json({ message }, { status: 201 });

@@ -3,10 +3,11 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, PlayCircle, History, Sun, Moon } from "lucide-react"
+import { LayoutDashboard, PlayCircle, History, Sun, Moon, Users, FileText, ClipboardList, } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "next-themes"
-import  ActivityDropdown  from "@/components/activity-dropdown";
+import ActivityDropdown from "@/components/activity-dropdown";
+import { useQuery } from "@tanstack/react-query";
 
 const navItems = [
   {
@@ -24,17 +25,74 @@ const navItems = [
     href: "/past-withdrawals",
     icon: History,
   },
+  {
+    name: "Personeller",
+    href: "/users",
+    icon: Users
+  },
+  {
+    name: "Log Kayıtları",
+    href: "/logs",
+    icon: FileText,
+  },
+  {
+    name: "Raporlar",
+    href: "/reports",
+    icon: ClipboardList
+  }
 ]
+
+interface CurrentUser {
+  id: string
+  role: string
+  username: string
+}
+
+const fetchCurrentUser = async () => {
+  const response = await fetch('/api/current-user', { credentials: "include" })
+  if (!response.ok) {
+    throw new Error(`Kullanıcı bilgisi alınamadı: ${response.status}`)
+  }
+
+  const result = await response.json()
+  return result.data
+}
 
 export function Navbar() {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
 
+  const { data: currentUser, isLoading: currentUserLoading, error: currentUserError } = useQuery<CurrentUser>({
+    queryKey: ["currentUser"],
+    queryFn: fetchCurrentUser
+  })
+
+  if (currentUserLoading) {
+    return (
+      <div>
+        Yükleniyor...
+        <div className="text-sm text-gray-500 mt-2">
+          {currentUserLoading && <div>Kullanıcı bilgileri yükleniyor...</div>}
+        </div>
+      </div>
+    )
+  }
+
+  if (currentUserError) {
+    return <div className="text-red-500">Hata: {currentUserError.message}</div>
+  }
+  if (!currentUser) {
+    return <div className="text-red-500">Hata: Kullanıcı bilgisi alınamadı</div>
+  }
+
+  const userRole = currentUser.role?.toLowerCase()
+  const canSeeUsers = userRole === "admin" || userRole === "cekimsorumlusu"
+
   return (
     <div className="flex flex-col w-full">
-      {/* Üst Bar */}
+      {/* Üst */}
       <div className="bg-card text-primary px-6 py-3 flex justify-between items-center border-b border-primary/50">
-        <div className="text-2xl font-bold ml-20">ÇEKİM</div>
+        <div className="text-2xl font-bold ml-25">ÇEKİM</div>
         <ActivityDropdown />
         <Button
           variant="ghost"
@@ -47,10 +105,14 @@ export function Navbar() {
         </Button>
       </div>
 
-      {/* Alt Navigasyon - Ortalanmış */}
+      {/* Alt */}
       <div className="bg-card border-b border-primary/50 px-6 py-2">
         <div className="flex items-center justify-center space-x-4">
           {navItems.map((item) => {
+
+            if((item.name === "Personeller" || item.name === "Log Kayıtları" || item.name === "Dashboard" || item.name === "Raporlar") && !canSeeUsers) {
+              return null
+            }
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
 
             return (

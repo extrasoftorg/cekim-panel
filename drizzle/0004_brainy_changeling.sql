@@ -1,1 +1,0 @@
-ALTER TABLE "withdrawals" ADD COLUMN "handler_username" text;

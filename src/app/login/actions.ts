@@ -9,12 +9,11 @@ import Mailgun from 'mailgun.js'
 import formData from 'form-data';
 
 const mailgun = new Mailgun(formData);
-const mg = mailgun.client ({
-    username: 'api',
-    key: process.env.MAILGUN_API_KEY as string,
-})
-
-console.log(process.env.MAILGUN_API_KEY)
+const mg = mailgun.client({
+    username: "api",
+    key: process.env.MAILGUN_API_KEY!,
+    url: "https://api.eu.mailgun.net",
+});
 export async function login(username: string, password: string) {
     try {
         const user = await db.select({
@@ -44,15 +43,13 @@ export async function login(username: string, password: string) {
         await redis.set(`otp:${user[0].id}`, otp, 'EX', 300);
 
         try {
-            const messageData = {
-                from: `OTP Servisi <mailgun@${process.env.MAILGUN_DOMAIN}>`,
+            const response = await mg.messages.create("exgoapp.com", {
+                from: "Dogrulama <no-reply@exgoapp.com>",
                 to: user[0].email,
                 subject: 'Doğrulama kodunuz',
                 text: `Girişinizi doğrulamak için kodu giriniz: ${otp} Kullanım süresi 5 dakikadır.`
-            };
-
-            const response = await mg.messages.create(process.env.MAILGUN_DOMAIN as string, messageData);
-            console.log('Mail gönderildi:', response);
+            });
+            console.log("Mail gönderildi:", response);
         } catch (error) {
             console.error('Mail gönderme hatası:', error);
         }

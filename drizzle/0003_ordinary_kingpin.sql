@@ -1,2 +1,0 @@
-ALTER TABLE "withdrawals" ADD COLUMN "handling_by" uuid;--> statement-breakpoint
-ALTER TABLE "withdrawals" ADD CONSTRAINT "withdrawals_handling_by_users_id_fk" FOREIGN KEY ("handling_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;

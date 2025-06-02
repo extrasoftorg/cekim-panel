@@ -6,7 +6,10 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Inter } from "next/font/google"
 import { verifyOtp } from "../../app/login/verification/actions"
-import styles from "../../app/login/verification/styles.module.css"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,21 +48,19 @@ export default function VerificationPage() {
   }
 
   const isSuccess = message?.includes("başarılı") || message?.includes("doğrulandı")
-  const messageClass = isSuccess ? styles.successMessage : styles.errorMessage
 
 
   return (
-    <div className={`${styles.container} ${inter.className}`}>
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.cardTitle}>E-mail Doğrulama</h2>
-          <p className={styles.cardDescription}>Lütfen 6 haneli doğrulama kodunu girin</p>
-        </div>
-
-        <div className={styles.cardContent}>
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.inputWrapper}>
-              <input
+    <div className={`flex min-h-screen items-center justify-center bg-background p-4 ${inter.className}`}>
+      <Card className="w-full max-w-md overflow-hidden">
+        <CardHeader className="text-center py-3 px-4 border-b border-border">
+          <CardTitle className="text-xl font-bold">E-mail Doğrulama</CardTitle>
+          <CardDescription className="max-w-[90%] mx-auto">Lütfen 6 haneli doğrulama kodunu girin</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6 pb-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <Input
                 type="text"
                 value={otp}
                 onChange={(e) => {
@@ -70,23 +71,28 @@ export default function VerificationPage() {
                 }}
                 placeholder="6 haneli kodu girin"
                 maxLength={6}
-                className={styles.otpInputSingle}
+                className="h-12 text-center text-base font-mono tracking-widest"
                 required
               />
             </div>
-
-            <button type="submit" className={styles.verifyButton} disabled={otp.length !== 6}>
+            <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={otp.length !== 6}>
               Doğrula
-            </button>
+            </Button>
           </form>
-        </div>
-
+        </CardContent>
         {message && (
-          <div className={styles.cardFooter}>
-            <div className={`${styles.message} ${messageClass}`}>{message}</div>
-          </div>
+          <CardFooter>
+            <div
+              className={`w-full rounded-md p-3 text-center text-sm ${isSuccess
+                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-l-4 border-green-500"
+                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-l-4 border-red-500"
+                }`}
+            >
+              {message}
+            </div>
+          </CardFooter>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

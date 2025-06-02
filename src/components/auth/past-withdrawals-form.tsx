@@ -11,6 +11,7 @@ import { format, startOfDay, endOfDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import * as XLSX from "xlsx"
 import { FiSearch, FiCalendar, FiDownload, FiFilter } from "react-icons/fi"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface Withdrawal {
   id: number
@@ -23,6 +24,13 @@ interface Withdrawal {
   note: string
   withdrawalStatus: "approved" | "rejected"
   handlerUsername?: string | null
+  hasTransfers: boolean
+}
+
+interface TransferHistory {
+  transferredTo: string | null
+  transferredBy: string | null
+  transferredAt: string
 }
 
 const fetchPastWithdrawals = async () => {
@@ -32,6 +40,27 @@ const fetchPastWithdrawals = async () => {
     throw new Error(`Veri çekme hatası: ${response.status} ${errorText}`)
   }
   return response.json()
+}
+
+const fetchTransferHistory = async (withdrawalId: number): Promise<TransferHistory[]> => {
+  console.log(`fetchTransferHistory çağrıldı, withdrawalId: ${withdrawalId}`)
+  const response = await fetch(`/api/withdrawals/transfer?withdrawalId=${withdrawalId}`, { credentials: "include" })
+  console.log("fetchTransferHistory response:", response)
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error("fetchTransferHistory hata:", response.status, errorText)
+    throw new Error(`Transfer geçmişi çekme hatası: ${response.status} ${errorText}`)
+  }
+  const data = await response.json()
+  console.log("fetchTransferHistory veri:", data)
+
+  const transformedData = data.data.map((item: any) => ({
+    transferredTo: item.transferredToUsername,
+    transferredBy: item.transferredByUsername,
+    transferredAt: item.transferredAt,
+  }))
+
+  return transformedData
 }
 
 export default function PastWithdrawalsPage() {
@@ -46,7 +75,10 @@ export default function PastWithdrawalsPage() {
 
   const [playerUsernameFilter, setPlayerUsernameFilter] = useState("")
   const [methodFilter, setMethodFilter] = useState("yontem")
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined })
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  })
   const [handlerFilter, setHandlerFilter] = useState("yetkili")
   const [noteFilter, setNoteFilter] = useState("note")
   const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "rejected">("all")
@@ -55,6 +87,11 @@ export default function PastWithdrawalsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [rowsPerPage] = useState(5)
   const [isFiltered, setIsFiltered] = useState(false)
+
+  const [isLoadingTransfers, setIsLoadingTransfers] = useState<{ [key: number]: boolean }>({})
+  const [transferErrors, setTransferErrors] = useState<{ [key: number]: string | null }>({})
+  const [transfersData, setTransfersData] = useState<{ [key: number]: TransferHistory[] }>({})
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -73,7 +110,7 @@ export default function PastWithdrawalsPage() {
   }
 
   const applyFilters = () => {
-    let filtered = pastWithdrawals.filter((w) => {
+    const filtered = pastWithdrawals.filter((w) => {
       if (playerUsernameFilter && !w.playerFullname.toLowerCase().includes(playerUsernameFilter.toLowerCase())) {
         return false
       }
@@ -92,7 +129,10 @@ export default function PastWithdrawalsPage() {
         }
       }
 
-      if (handlerFilter !== "yetkili" && (!w.handlerUsername || !w.handlerUsername.toLowerCase().includes(handlerFilter.toLowerCase()))) {
+      if (
+        handlerFilter !== "yetkili" &&
+        (!w.handlerUsername || !w.handlerUsername.toLowerCase().includes(handlerFilter.toLowerCase()))
+      ) {
         return false
       }
 
@@ -119,11 +159,13 @@ export default function PastWithdrawalsPage() {
       Müşteri: withdrawal.playerFullname,
       Yöntem: withdrawal.method,
       Miktar: `${withdrawal.amount} TL`,
-      "Talep Tarihi": new Date(withdrawal.requestedAt).toLocaleString(),
-      "Kapanma Tarihi": withdrawal.concludedAt ? new Date(withdrawal.concludedAt).toLocaleString() : "Bilinmiyor",
+      "Talep Tarihi": format(new Date(withdrawal.requestedAt), "dd.MM.yy HH:mm:ss"),
+      "Kapanma Tarihi": withdrawal.concludedAt
+        ? format(new Date(withdrawal.concludedAt), "dd-MM-yy HH:mm:ss")
+        : "Bilinmiyor",
       "Kapanma Süresi": calculateDuration(withdrawal.requestedAt, withdrawal.concludedAt),
       Çevrim: "-",
-      Yetkili: withdrawal.handlerUsername,
+      Yetkili: withdrawal.handlerUsername || "Bilinmiyor",
       Not: withdrawal.note,
       Durum: withdrawal.withdrawalStatus === "approved" ? "Onaylandı" : "Reddedildi",
     }))
@@ -145,42 +187,62 @@ export default function PastWithdrawalsPage() {
     ? filteredWithdrawals
     : filteredWithdrawals.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
 
-
   const getPageNumbers = () => {
-    const maxPagesToShow = 7;
-    const pages = [];
-
+    const maxPagesToShow = 5
+    const pages = []
 
     if (totalPages <= maxPagesToShow) {
       for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
+        pages.push(i)
       }
-      return pages;
+      return pages
     }
 
-    const startPage = Math.max(2, currentPage - 2);
-    const endPage = Math.min(totalPages - 1, currentPage + 2);
+    const startPage = Math.max(2, currentPage - 2)
+    const endPage = Math.min(totalPages - 1, currentPage + 2)
 
-    pages.push(1);
+    pages.push(1)
 
     if (startPage > 2) {
-      pages.push("...");
+      pages.push("...")
     }
 
     for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
+      pages.push(i)
     }
 
     if (endPage < totalPages - 1) {
-      pages.push("...");
+      pages.push("...")
     }
 
     if (totalPages > 1) {
-      pages.push(totalPages);
+      pages.push(totalPages)
     }
 
-    return pages;
-  };
+    return pages
+  }
+
+  const handleViewTransfers = async (withdrawalId: number) => {
+    console.log(`handleViewTransfers çağrıldı, withdrawalId: ${withdrawalId}`)
+    if (transfersData[withdrawalId]) {
+      console.log(`Veri zaten var, withdrawalId: ${withdrawalId}, veri:`, transfersData[withdrawalId])
+      return
+    }
+
+    setIsLoadingTransfers((prev) => ({ ...prev, [withdrawalId]: true }))
+    setTransferErrors((prev) => ({ ...prev, [withdrawalId]: null }))
+    try {
+      const transfers = await fetchTransferHistory(withdrawalId)
+      console.log(`fetchTransferHistory başarılı, withdrawalId: ${withdrawalId}, transfers:`, transfers)
+      setTransfersData((prev) => ({ ...prev, [withdrawalId]: transfers }))
+    } catch (error) {
+      const errorMessage = (error as Error).message || "Transfer geçmişi alınamadı"
+      console.error(`fetchTransferHistory hata, withdrawalId: ${withdrawalId}, hata:`, errorMessage)
+      setTransferErrors((prev) => ({ ...prev, [withdrawalId]: errorMessage }))
+    } finally {
+      setIsLoadingTransfers((prev) => ({ ...prev, [withdrawalId]: false }))
+    }
+  }
 
   if (!mounted) return null
 
@@ -188,16 +250,17 @@ export default function PastWithdrawalsPage() {
     return (
       <div>
         Yükleniyor...
-        <div className="text-sm text-muted-foreground mt-2 text-center">
-          Geçmiş çekim talepleri yükleniyor...
-        </div>
+        <div className="text-sm text-muted-foreground mt-2 text-center">Geçmiş çekim talepleri yükleniyor...</div>
       </div>
     )
   }
 
   if (error) {
+    console.error("useQuery hata:", error)
     return <div className="text-destructive text-center">Hata: {(error as Error).message}</div>
   }
+
+  console.log("paginatedWithdrawals:", paginatedWithdrawals)
 
   return (
     <div className="grid grid-cols-auto">
@@ -245,7 +308,10 @@ export default function PastWithdrawalsPage() {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={cn("w-full h-9 justify-start text-left font-normal", !dateRange.from && !dateRange.to && "text-muted-foreground")}
+                  className={cn(
+                    "w-full h-9 justify-start text-left font-normal",
+                    !dateRange.from && !dateRange.to && "text-muted-foreground",
+                  )}
                 >
                   <FiCalendar className="" />
                   <span className="flex-1">
@@ -306,7 +372,10 @@ export default function PastWithdrawalsPage() {
             </Select>
           </div>
           <div className="text-center">
-            <Select onValueChange={(value: "all" | "approved" | "rejected") => setStatusFilter(value)} defaultValue="all">
+            <Select
+              onValueChange={(value: "all" | "approved" | "rejected") => setStatusFilter(value)}
+              defaultValue="all"
+            >
               <SelectTrigger className="w-full h-10">
                 <SelectValue placeholder="Tümü" />
               </SelectTrigger>
@@ -319,11 +388,17 @@ export default function PastWithdrawalsPage() {
           </div>
           <div className="text-center">
             <div className="flex gap-2">
-              <Button onClick={handleExcelDownload} className="w-1/2 h-10 bg-green-500 hover:bg-green-600 text-white flex items-center justify-center">
+              <Button
+                onClick={handleExcelDownload}
+                className="w-1/2 h-9 bg-green-500 hover:bg-green-600 text-white flex items-center justify-center"
+              >
                 <FiDownload />
                 Excel
               </Button>
-              <Button onClick={applyFilters} className="w-1/2 h-10 bg-primary hover:bg-primary/90 flex items-center justify-center">
+              <Button
+                onClick={applyFilters}
+                className="w-1/2 h-9 bg-primary hover:bg-primary/90 flex items-center justify-center"
+              >
                 <FiFilter />
                 Filtrele
               </Button>
@@ -357,10 +432,14 @@ export default function PastWithdrawalsPage() {
               </TableRow>
             ) : (
               paginatedWithdrawals.map((withdrawal) => {
-                const requestedAtStr = new Date(withdrawal.requestedAt).toLocaleString();
-                const concludedAtStr = withdrawal.concludedAt ? new Date(withdrawal.concludedAt).toLocaleString() : "Bilinmiyor";
-                const [requestedDate, requestedTime] = requestedAtStr.split(" ");
-                const [concludedDate, concludedTime] = concludedAtStr === "Bilinmiyor" ? ["Bilinmiyor", ""] : concludedAtStr.split(" ");
+                console.log(`withdrawal id: ${withdrawal.id}, hasTransfers: ${withdrawal.hasTransfers}`)
+                const requestedAt = new Date(withdrawal.requestedAt)
+                const concludedAt = withdrawal.concludedAt ? new Date(withdrawal.concludedAt) : null
+                const requestedAtStr = format(requestedAt, "dd.MM.yy HH:mm:ss")
+                const concludedAtStr = concludedAt ? format(concludedAt, "dd.MM.yy HH:mm:ss") : "Bilinmiyor"
+                const [requestedDate, requestedTime] = requestedAtStr.split(" ")
+                const [concludedDate, concludedTime] =
+                  concludedAtStr === "Bilinmiyor" ? ["Bilinmiyor", ""] : concludedAtStr.split(" ")
 
                 return (
                   <TableRow key={withdrawal.id}>
@@ -378,7 +457,80 @@ export default function PastWithdrawalsPage() {
                       {calculateDuration(withdrawal.requestedAt, withdrawal.concludedAt)}
                     </TableCell>
                     <TableCell className="table-cell">-</TableCell>
-                    <TableCell className="table-cell">{withdrawal.handlerUsername || "Bilinmiyor"}</TableCell>
+                    <TableCell className="table-cell">
+                      {withdrawal.hasTransfers ? (
+                        <DropdownMenu
+                          open={openDropdownId === withdrawal.id}
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              setOpenDropdownId(null)
+                            }
+                          }}
+                        >
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              className="compact-btn"
+                              onClick={() => {
+                                console.log(`Görüntüle butonuna tıklandı, withdrawalId: ${withdrawal.id}`)
+                                setOpenDropdownId(withdrawal.id)
+                                handleViewTransfers(withdrawal.id)
+                              }}
+                            >
+                              Görüntüle
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-[450px] overflow-x-hidden">
+                            <div className="p-4">
+                              <h4 className="font-medium mb-2">Transfer Geçmişi</h4>
+                              {isLoadingTransfers[withdrawal.id] ? (
+                                <div className="text-center text-sm text-muted-foreground">Yükleniyor...</div>
+                              ) : transferErrors[withdrawal.id] ? (
+                                <div className="text-center text-sm text-destructive">
+                                  {transferErrors[withdrawal.id]}
+                                </div>
+                              ) : transfersData[withdrawal.id]?.length ? (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="table-head">Personel</TableHead>
+                                      <TableHead className="table-head">Transfer Eden</TableHead>
+                                      <TableHead className="table-head">Atanma Tarihi</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {[...transfersData[withdrawal.id]]
+                                      .sort(
+                                        (a, b) =>
+                                          new Date(b.transferredAt).getTime() - new Date(a.transferredAt).getTime(),
+                                      )
+                                      .map((transfer, index) => (
+                                        <TableRow key={index}>
+                                          <TableCell className="table-cell w-1/3 truncate">
+                                            {transfer.transferredTo || "Bilinmiyor"}
+                                          </TableCell>
+                                          <TableCell className="table-cell w-1/3 truncate">
+                                            {transfer.transferredBy || "Bilinmiyor"}
+                                          </TableCell>
+                                          <TableCell className="table-cell w-1/3 truncate">
+                                            {format(new Date(transfer.transferredAt), "dd.MM.yy HH:mm:ss")}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                  </TableBody>
+                                </Table>
+                              ) : (
+                                <div className="text-center text-sm text-muted-foreground">
+                                  Transfer geçmişi bulunamadı.
+                                </div>
+                              )}
+                            </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        withdrawal.handlerUsername
+                      )}
+                    </TableCell>
                     <TableCell className="table-cell table-note">{withdrawal.note}</TableCell>
                     <TableCell className="table-cell">
                       <span
@@ -388,41 +540,48 @@ export default function PastWithdrawalsPage() {
                       </span>
                     </TableCell>
                   </TableRow>
-                );
+                )
               })
             )}
           </TableBody>
         </Table>
         {!isFiltered && (
-          <div className="flex justify-center space-x-2 mt-4">
-            <Button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-4 py-2"
-            >
-              Önceki
-            </Button>
-            {getPageNumbers().map((page, index) => (
+          <div className="flex justify-center mt-4">
+            <div className="inline-flex items-center rounded-md border border-[color:var(--border)] overflow-hidden">
               <Button
-                key={index}
-                onClick={() => typeof page === "number" && handlePageChange(page)}
-                disabled={page === "..."}
-                className={cn(
-                  "px-4 py-2",
-                  page === "..." ? "bg-gray-200 cursor-default" : "",
-                  typeof page === "number" && page === currentPage ? "bg-primary text-white" : "bg-gray-200"
-                )}
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                variant="ghost"
+                className="h-10 px-4 py-2 text-sm font-medium border-r border-[color:var(--border)] rounded-none hover:bg-[color:var(--secondary)] hover:text-[color:var(--secondary-foreground)]"
               >
-                {page}
+                Önceki
               </Button>
-            ))}
-            <Button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2"
-            >
-              Sonraki
-            </Button>
+              {getPageNumbers().map((page, index) => (
+                <Button
+                  key={index}
+                  onClick={() => typeof page === "number" && handlePageChange(page)}
+                  disabled={page === "..."}
+                  variant="ghost"
+                  className={cn(
+                    "h-10 min-w-[40px] px-3 py-2 text-sm font-medium border-r border-[color:var(--border)] rounded-none",
+                    page === "..." ? "cursor-default" : "",
+                    typeof page === "number" && page === currentPage
+                      ? "bg-[color:var(--primary)] text-[color:var(--primary-foreground)]"
+                      : "hover:bg-[color:var(--secondary)] hover:text-[color:var(--secondary-foreground)]",
+                  )}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                variant="ghost"
+                className="h-10 px-4 py-2 text-sm font-medium rounded-none hover:bg-[color:var(--secondary)] hover:text-[color:var(--secondary-foreground)]"
+              >
+                Sonraki
+              </Button>
+            </div>
           </div>
         )}
       </div>

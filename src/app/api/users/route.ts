@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db/index';
 import { usersTable, userStatusLogsTable, withdrawalsTable } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { z } from 'zod';
@@ -44,6 +44,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get('status');
+    const fetchAll = searchParams.get('fetchAll');
 
     if (statusFilter) {
       const validStatuses = ['online', 'away', 'offline'];
@@ -68,7 +69,25 @@ export async function GET(request: Request) {
 
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ success: false, message: 'Kullanıcı oturumu bulunamadı' }, { status: 401 });
+      return null;
+    }
+
+    if (fetchAll === 'true') {
+      const userRole = user.role.toLowerCase();
+      if (userRole !== 'admin' && userRole !== 'cekimsorumlusu') {
+        return NextResponse.json({ success: false, message: 'Bu işlemi gerçekleştirmek için yetkiniz yok' }, { status: 403 });
+      }
+
+      const allUsers = await db
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          role: usersTable.role,
+          activityStatus: usersTable.activityStatus,
+        })
+        .from(usersTable);
+
+      return NextResponse.json({ success: true, data: allUsers });
     }
 
     const userData = await db
@@ -133,7 +152,6 @@ export async function POST(request: Request) {
     }
 
     await db.transaction(async (tx) => {
-
       await tx
         .update(usersTable)
         .set({ activityStatus: status, updatedAt: new Date() })
@@ -150,17 +168,23 @@ export async function POST(request: Request) {
           .update(withdrawalsTable)
           .set({
             handlingBy: null,
-            handlerUsername: null,
             updatedAt: new Date(),
           })
-          .where(eq(withdrawalsTable.handlingBy, userId));
+          .where(
+            and(
+              eq(withdrawalsTable.handlingBy, userId),
+              eq(withdrawalsTable.withdrawalStatus, 'pending')
+            )
+          );
       }
 
       if (targetUserRole === 'cekimpersoneli') {
         if (status === 'online') {
           await redis.lpush('active_personnel', userId);
+          console.log(`Redis: ${userId} active_personnel listesine eklendi.`);
         } else {
           await redis.lrem('active_personnel', 0, userId);
+          console.log(`Redis: ${userId} active_personnel listesinden çıkarıldı.`);
         }
       }
     });

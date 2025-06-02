@@ -1,17 +1,920 @@
 "use client"
+import React from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle } from 'lucide-react';
+import { format } from "date-fns"
+import { Input } from "@/components/ui/input";
+import LoadingSpinner from '@/components/loading-spinner';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { updateWithdrawalStatus } from "@/app/withdraw/actions"
+import { useState, useEffect } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { supabase } from "../../../supabaseClient"
+
+// Tür Tanımları
+interface Withdrawal {
+  id: number
+  playerUsername: string
+  playerFullname: string
+  note: string
+  transactionId: number
+  method: string
+  amount: number
+  requestedAt: string
+  message: string
+  withdrawalStatus: string
+  handlingBy?: string | null
+  handlerUsername?: string | null
+}
+
+interface User {
+  id: string
+  username: string
+  role: string
+  activityStatus: "online" | "offline" | "away"
+  pendingWithdrawalsCount?: number
+}
+
+interface CurrentUser {
+  id: string
+  role: string
+  username: string
+}
+
+// Form Values Türü (dinamik alanlar için)
+interface FormValues {
+  kuponId?: string
+  additionalInfo?: string
+  coklu?: string
+  kapaCoklu?: string
+  silCoklu?: string
+}
+
+// Kategoriler
+const rejectionCategories: { [key: string]: { [subKey: string]: string[] } | string[] } = {
+  "Eksik Çevrim": [
+    "anapara_cevrim",
+    "acik_bonus_cevrim",
+    "acik_bahis_cevrim"
+  ],
+  "Çoklu Hesap": [
+    "coklu_hesap",
+    "ip_coklu",
+    "ayni_aile_coklu"
+  ],
+  "Maksimum Çekim Sınırı": [
+    "deneme_sinir",
+    "call_siniri",
+    "promosyon_sinir",
+    "yatirim_sinir",
+    "hediye_sinir",
+    "bonus_sinir"
+  ],
+  "Suistimal Sorunları": {
+    "Spor": [
+      "safe_bahis",
+      "kurma_bahis"
+    ],
+    "Casino": [
+      "bire1_bahis",
+      "casino_kurma_bahis",
+      "ozel_oyun_kontrol"
+    ],
+    "Bonus": [
+      "yatirim_bonus_suistimal",
+      "cashback_suistimal",
+      "deneme_suistimal",
+      "hediye_suistimal"
+    ]
+  },
+  "Yöntem Sorunu": [
+    "yontem_sorunu"
+  ]
+}
+
+// Ret sebeplerini çeviri fonksiyonu
+function translateRejectReason(reason: string): string {
+  switch (reason) {
+    case "anapara_cevrim":
+      return "Anapara Eksik Çevrim";
+    case "acik_bonus_cevrim":
+      return "Bonus Açık Bahis Mevcut";
+    case "acik_bahis_cevrim":
+      return "Açık Bahis Mevcut";
+    case "coklu_hesap":
+      return "Çoklu Hesap";
+    case "ip_coklu":
+      return "Aynı IP Çoklu Hesap";
+    case "ayni_aile_coklu":
+      return "Aynı Aile Çoklu Hesap";
+    case "deneme_sinir":
+      return "Deneme Bonusu Çekim Sınırı";
+    case "call_siniri":
+      return "Dış Data Hediyesi Çekim Sınırı";
+    case "promosyon_sinir":
+      return "Promosyon Kodu Çekim Sınırı";
+    case "yatirim_sinir":
+      return "Yatırıma Bağlı Çekim Sınırı";
+    case "hediye_sinir":
+      return "Hediye Bonusu Çekim Sınırı";
+    case "bonus_sinir":
+      return "Bonus Çekim Sınırı";
+    case "safe_bahis":
+      return "Safe Bahis";
+    case "kurma_bahis":
+      return "Kurma/Riskli Bahis";
+    case "bire1_bahis":
+      return "1e1 Bahis";
+    case "casino_kurma_bahis":
+      return "Casino Kurma Bahis";
+    case "ozel_oyun_kontrol":
+      return "Özel Oyun Kontrol";
+    case "yatirim_bonus_suistimal":
+      return "Yatırım Bonusu Suistimali";
+    case "cashback_suistimal":
+      return "Cashback Suistimali";
+    case "deneme_suistimal":
+      return "Deneme Bonusu Suistimali";
+    case "hediye_suistimal":
+      return "Hediye Bonus Suistimali";
+    case "yontem_sorunu":
+      return "Yöntem Sorunu";
+    case "sekiz_saatte_cekim":
+      return "8 Saatte Bir Çekim";
+    case "tc_hata":
+      return "TC Hata";
+    case "yeni_gun":
+      return "Yeni Gün";
+    case "ikiyuztl_alt":
+      return "200 TL Altı";
+    case "on_katlari":
+      return "10 Katları";
+    default:
+      return reason;
+  }
+}
+
+// Component'ler
+const AnaparaCevrimFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const AcikBonusCevrimFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="kuponId" className="text-left">
+        Kupon ID
+      </Label>
+      <Input
+        type="number"
+        id="kuponId"
+        name="kuponId"
+        value={formValues.kuponId || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            kuponId: e.target.value,
+          }))
+        }
+        placeholder="Kupon ID Girin"
+        className="w-full [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const AcikBahisCevrimFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="kuponId" className="text-left">
+        Kupon ID
+      </Label>
+      <Input
+        type="number"
+        id="kuponId"
+        name="kuponId"
+        value={formValues.kuponId || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            kuponId: e.target.value,
+          }))
+        }
+        placeholder="Kupon ID Girin"
+        className="w-full [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const CokluHesapFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="coklu" className="text-left">
+        Çoklu Hesapları
+      </Label>
+      <Input
+        id="coklu"
+        name="coklu"
+        value={formValues.coklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            coklu: e.target.value,
+          }))
+        }
+        placeholder="Çoklu Hesapları"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="kapaCoklu" className="text-left">
+        Kapatılan Hesaplar
+      </Label>
+      <Input
+        id="kapaCoklu"
+        name="kapaCoklu"
+        value={formValues.kapaCoklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            kapaCoklu: e.target.value,
+          }))
+        }
+        placeholder="Kapatılan Hesaplar"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="silCoklu" className="text-left">
+        Bakiyesi Silinen Hesaplar
+      </Label>
+      <Input
+        id="silCoklu"
+        name="silCoklu"
+        value={formValues.silCoklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            silCoklu: e.target.value,
+          }))
+        }
+        placeholder="Bakiyesi Silinen Hesaplar"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) => {
+          const value = e.target.value;
+          const valuesArray = value.trim().split(" ").filter(Boolean);
+          const joinedValue = valuesArray.join(", ");
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: joinedValue,
+          }));
+        }}
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const IpCokluFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="coklu" className="text-left">
+        Çoklu Hesapları
+      </Label>
+      <Input
+        id="coklu"
+        name="coklu"
+        value={formValues.coklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            coklu: e.target.value,
+          }))
+        }
+        placeholder="Çoklu Hesapları"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="kapaCoklu" className="text-left">
+        Kapatılan Hesaplar
+      </Label>
+      <Input
+        id="kapaCoklu"
+        name="kapaCoklu"
+        value={formValues.kapaCoklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            kapaCoklu: e.target.value,
+          }))
+        }
+        placeholder="Kapatılan Hesaplar"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="silCoklu" className="text-left">
+        Bakiyesi Silinen Hesaplar
+      </Label>
+      <Input
+        id="silCoklu"
+        name="silCoklu"
+        value={formValues.silCoklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            silCoklu: e.target.value,
+          }))
+        }
+        placeholder="Bakiyesi Silinen Hesaplar"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) => {
+          const value = e.target.value;
+          const valuesArray = value.trim().split(" ").filter(Boolean);
+          const joinedValue = valuesArray.join(", ");
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: joinedValue,
+          }));
+        }}
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const AyniAileCokluFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="coklu" className="text-left">
+        Çoklu Hesapları
+      </Label>
+      <Input
+        id="coklu"
+        name="coklu"
+        value={formValues.coklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            coklu: e.target.value,
+          }))
+        }
+        placeholder="Çoklu Hesapları"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="kapaCoklu" className="text-left">
+        Kapatılan Hesaplar
+      </Label>
+      <Input
+        id="kapaCoklu"
+        name="kapaCoklu"
+        value={formValues.kapaCoklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            kapaCoklu: e.target.value,
+          }))
+        }
+        placeholder="Kapatılan Hesaplar"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="silCoklu" className="text-left">
+        Bakiyesi Silinen Hesaplar
+      </Label>
+      <Input
+        id="silCoklu"
+        name="silCoklu"
+        value={formValues.silCoklu || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            silCoklu: e.target.value,
+          }))
+        }
+        placeholder="Bakiyesi Silinen Hesaplar"
+        className="w-full"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) => {
+          const value = e.target.value;
+          const valuesArray = value.trim().split(" ").filter(Boolean);
+          const joinedValue = valuesArray.join(", ");
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: joinedValue,
+          }));
+        }}
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const DenemeSinirFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const CallSinirFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const PromosyonSinirFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const YatirimSinirFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const HediyeSinirFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const BonusSinirFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const SafeBahisFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const KurmaBahisFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const Bire1BahisFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const CasinoKurmaBahisFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const OzelOyunKontrolFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const YatirimBonusSuistimalFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const CashbackSuistimalFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const DenemeSuistimalFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const HediyeSuistimalFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const YontemSorunuFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+// Component Mapping
+const rejectionFieldComponents = {
+  anapara_cevrim: AnaparaCevrimFields,
+  acik_bonus_cevrim: AcikBonusCevrimFields,
+  acik_bahis_cevrim: AcikBahisCevrimFields,
+  coklu_hesap: CokluHesapFields,
+  ip_coklu: IpCokluFields,
+  ayni_aile_coklu: AyniAileCokluFields,
+  deneme_sinir: DenemeSinirFields,
+  call_siniri: CallSinirFields,
+  promosyon_sinir: PromosyonSinirFields,
+  yatirim_sinir: YatirimSinirFields,
+  hediye_sinir: HediyeSinirFields,
+  bonus_sinir: BonusSinirFields,
+  safe_bahis: SafeBahisFields,
+  kurma_bahis: KurmaBahisFields,
+  bire1_bahis: Bire1BahisFields,
+  casino_kurma_bahis: CasinoKurmaBahisFields,
+  ozel_oyun_kontrol: OzelOyunKontrolFields,
+  yatirim_bonus_suistimal: YatirimBonusSuistimalFields,
+  cashback_suistimal: CashbackSuistimalFields,
+  deneme_suistimal: DenemeSuistimalFields,
+  hediye_suistimal: HediyeSuistimalFields,
+  yontem_sorunu: YontemSorunuFields,
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -61,39 +964,10 @@ const groupUsersByRole = (users: User[]) => {
   }))
 }
 
-interface Withdrawal {
-  id: number
-  playerUsername: string
-  playerFullname: string
-  note: string
-  transactionId: number
-  method: string
-  amount: number
-  requestedAt: string
-  message: string
-  withdrawalStatus: string
-  handlingBy?: string | null
-  handlerUsername?: string | null
-}
-
-interface User {
-  id: string
-  username: string
-  role: string
-  activityStatus: "online" | "offline" | "away"
-}
-
-interface CurrentUser {
-  id: string
-  role: string
-  username: string
-}
-
 const fetchCurrentUser = async () => {
   const response = await fetch("/api/current-user", { credentials: "include" })
   if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Kullanıcı bilgisi alınamadı: ${response.status} ${errorText}`)
+    throw new Error(`Kullanıcı bilgisi alınamadı: ${response.status}`)
   }
   const result = await response.json()
   return result.data
@@ -102,8 +976,7 @@ const fetchCurrentUser = async () => {
 const fetchWithdrawals = async () => {
   const response = await fetch("/api/withdrawals?status=pending", { credentials: "include" })
   if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Veri çekme hatası: ${response.status} ${errorText}`)
+    throw new Error(`Çekim talepleri alınamadı: ${response.status}`)
   }
   return await response.json()
 }
@@ -111,16 +984,28 @@ const fetchWithdrawals = async () => {
 const fetchUsersByStatus = async (status: "online" | "offline" | "away") => {
   const response = await fetch(`/api/users?status=${status}`, { credentials: "include" })
   if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Kullanıcılar alınamadı: ${response.status} ${errorText}`)
+    throw new Error(`Kullanıcılar alınamadı: ${response.status}`)
   }
-
   const result = await response.json()
   if (!result.success) {
     throw new Error(result.message || "API başarısız")
   }
   return result.data ?? []
 }
+
+// Bildirim sesini çalma fonksiyonu
+const playNotificationSound = () => {
+  console.log("playNotificationSound fonksiyonu çağrıldı."); // Debug: Fonksiyonun çağrıldığını kontrol et
+  const audio = new Audio('/sfx/table-live-update.wav');
+  audio.play()
+    .then(() => {
+      console.log("Ses başarıyla çalındı.");
+    })
+    .catch((error) => {
+      console.error('Ses çalma hatası:', error);
+      toast.error("Hata", { description: "Bildirim sesi çalınamadı: " + error.message });
+    });
+};
 
 export default function WithdrawPage() {
   const queryClient = useQueryClient()
@@ -157,9 +1042,59 @@ export default function WithdrawPage() {
     enabled: true,
   })
 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedWithdrawalId, setSelectedWithdrawalId] = useState<number | null>(null)
+  const [selectedAction, setSelectedAction] = useState<"approve" | "reject" | "manuelApprove" | "manuelReject" | null>(null)
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>("")
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("")
+  const [selectedRejectReason, setSelectedRejectReason] = useState<string>("")
+  const [formValues, setFormValues] = useState<FormValues>({})
+  const [setBalanceChecked, setSetBalanceChecked] = useState(false);
+
+  // Realtime dinleyiciyi useEffect ile kur
+  useEffect(() => {
+    if (!currentUser) {
+      console.log("currentUser yüklenmedi, dinleyici başlatılmadı.");
+      return;
+    }
+
+    console.log("Dinleyici başlatılıyor, currentUser.id:", currentUser.id);
+
+    const channel = supabase.channel('withdrawals-channel');
+
+    // Sadece INSERT olaylarını dinle
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'withdrawals',
+        filter: `handling_by=eq.${currentUser.id}`,
+      },
+      (payload) => {
+        console.log('INSERT Dinleyici tetiklendi:', payload);
+        const newWithdrawal = payload.new as Withdrawal;
+
+        console.log("Yeni çekim talebi alındı, ses çalınıyor ve bildirim gönderiliyor.");
+        playNotificationSound();
+        queryClient.invalidateQueries({ queryKey: ["pendingWithdrawals"] });
+      }
+    );
+
+    channel.subscribe((status) => {
+      console.log("Supabase kanal durumu:", status);
+    });
+
+    return () => {
+      console.log("Dinleyici temizleniyor.");
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser, queryClient]);
+
   const handleTransfer = async (withdrawalId: number, newHandlerId: string) => {
     if (!currentUser) {
-      toast("Hata", { description: "Kullanıcı bilgisi alınamadı" })
+      toast.error("Hata", { description: "Kullanıcı bilgisi alınamadı" })
       return
     }
 
@@ -174,25 +1109,105 @@ export default function WithdrawPage() {
       const result = await response.json()
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["pendingWithdrawals"] })
-        toast("İşlem başarılı", { description: result.message })
+        toast.success("İşlem başarılı", { description: result.message })
       } else {
-        toast("İşlem başarısız", { description: result.message })
+        toast.error("İşlem başarısız", { description: result.message })
       }
     } catch {
-      toast("İşlem başarısız", { description: "Bir hata oluştu" })
+      toast.error("İşlem başarısız", { description: "Bir hata oluştu" })
     }
   }
 
-  const handleAction = async (id: number, action: "approve" | "reject") => {
-    const result = await updateWithdrawalStatus({ id, action })
+  const handleActionSelect = (withdrawalId: number, action: "approve" | "reject" | "manuelApprove" | "manuelReject") => {
+    const withdrawal = withdrawals.find((w) => w.id === withdrawalId)
+    setSelectedWithdrawalId(withdrawalId)
+    setSelectedAction(action)
+    setSelectedWithdrawal(withdrawal || null)
+    setSelectedCategory("")
+    setSelectedSubCategory("")
+    setSelectedRejectReason("")
+    setFormValues({})
+    setSetBalanceChecked(false)
+    setIsModalOpen(true)
+  }
+
+  const checkReqFields = () => {
+    if (!selectedCategory) {
+      toast.error("Hata", { description: "Ana RET Sebebi seçiniz." })
+      return false
+    }
+
+    if (selectedCategory === "Suistimal Sorunları" && typeof rejectionCategories[selectedCategory] === 'object' && !selectedSubCategory) {
+      toast.error("Hata", { description: "Alt Kategori seçiniz." })
+      return false
+    }
+
+    if (!selectedRejectReason) {
+      toast.error("Hata", { description: "RET Sebebi seçiniz." })
+      return false
+    }
+    return true
+  }
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if ((selectedAction === "reject" || selectedAction === "manuelReject") && !checkReqFields()) {
+      return;
+    }
+    const formData = new FormData(e.currentTarget);
+    const additionalInfo = formData.get("additionalInfo") as string | null;
+    const deleteRemainingBalance = formData.get("deleteRemainingBalance") === "on";
+    const setBalance = formData.get("setBalance") === "on";
+    const customBalanceRaw = formData.get("customBalance");
+    const customBalance =
+      customBalanceRaw === null || customBalanceRaw === ""
+        ? undefined
+        : Number(customBalanceRaw);
+    console.log(customBalance);
+    handleAction(selectedWithdrawalId!, selectedAction!, additionalInfo, deleteRemainingBalance, setBalance, customBalance);
+  }
+
+  
+
+  const handleAction = async (
+    id: number,
+    action: "approve" | "reject" | "manuelApprove" | "manuelReject",
+    note: string | null,
+    deleteRemainingBalance: boolean,
+    setBalance: boolean,
+    customBalance: number | undefined
+  ) => {
+    if (!id || !action) return
+
+    const formData = new FormData()
+    formData.append("id", id.toString())
+    formData.append("action", action)
+    if (setBalance) formData.append("setBalance", "true");
+    if (customBalance !== undefined) formData.append("customBalance", customBalance.toString());
+    if (note) formData.append("note", note)
+    if (deleteRemainingBalance) formData.append("deleteRemainingBalance", "true")
+    if (selectedRejectReason) formData.append("rejectReason", selectedRejectReason)
+    if (Object.keys(formValues).length > 0) {
+      formData.append("additionalInfo", JSON.stringify(formValues))
+    }
+
+    const result = await updateWithdrawalStatus(formData)
     if (result.success) {
       queryClient.invalidateQueries({ queryKey: ["pendingWithdrawals"] })
-      toast("İşlem başarılı", { description: result.message })
+      toast.success("İşlem başarılı", { description: result.message })
     } else {
-      toast("İşlem başarısız", {
+      toast.error("İşlem başarısız", {
         description: typeof result.error === "string" ? result.error : "Bir hata oluştu",
       })
     }
+    setIsModalOpen(false)
+    setSelectedWithdrawalId(null)
+    setSelectedAction(null)
+    setSelectedCategory("")
+    setSelectedSubCategory("")
+    setSelectedRejectReason("")
+    setSelectedWithdrawal(null)
+    setFormValues({})
   }
 
   const handleStatusChange = async (userId: string, newStatus: "online" | "away" | "offline") => {
@@ -209,37 +1224,38 @@ export default function WithdrawPage() {
         queryClient.invalidateQueries({ queryKey: ["users", "online"] })
         queryClient.invalidateQueries({ queryKey: ["users", "offline"] })
         queryClient.invalidateQueries({ queryKey: ["users", "away"] })
-        toast("İşlem başarılı", { description: result.message })
+        toast.success("İşlem başarılı", { description: result.message })
       } else {
-        toast("İşlem başarısız", { description: result.message || "Durum güncellenemedi" })
+        toast.error("İşlem başarısız", { description: result.message || "Durum güncellenemedi" })
       }
     } catch (error) {
-      console.error('handleStatusChange: Durum güncelleme hatası:', error);
-      toast("İşlem başarısız", { description: "Bir hata oluştu, lütfen tekrar deneyin" })
+      console.error("handleStatusChange: Durum güncelleme hatası:", error)
+      toast.error("İşlem başarısız", { description: "Bir hata oluştu, lütfen tekrar deneyin" })
     }
   }
 
   if (currentUserLoading || withdrawalsLoading || onlineUsersLoading || offlineUsersLoading || awayUsersLoading) {
-    return (
-      <div>
-        Yükleniyor...
-        <div className="text-sm text-gray-500 mt-2">
-          {currentUserLoading && <div>Kullanıcı bilgileri yükleniyor...</div>}
-          {withdrawalsLoading && <div>Çekim talepleri yükleniyor...</div>}
-          {onlineUsersLoading && <div>Çevrimiçi kullanıcılar yükleniyor...</div>}
-          {offlineUsersLoading && <div>Çevrimdışı kullanıcılar yükleniyor...</div>}
-          {awayUsersLoading && <div>Molada olan kullanıcılar yükleniyor...</div>}
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
-  if (currentUserError) return <div className="text-red-500">Hata: {currentUserError.message}</div>
-  if (!currentUser) return <div className="text-red-500">Hata: Kullanıcı bilgisi alınamadı</div>
-  if (withdrawalsError) return <div className="text-red-500">Hata: Çekim talepleri alınamadı: {withdrawalsError.message}</div>
-  if (onlineUsersError) return <div className="text-red-500">Hata: Çevrimiçi kullanıcılar alınamadı: {onlineUsersError.message}</div>
-  if (offlineUsersError) return <div className="text-red-500">Hata: Çevrimdışı kullanıcılar alınamadı: {offlineUsersError.message}</div>
-  if (awayUsersError) return <div className="text-red-500">Hata: Molada olan kullanıcılar alınamadı: {awayUsersError.message}</div>
+  if (currentUserError) {
+    return <div className="text-red-500">Hata: {currentUserError.message}</div>
+  }
+  if (!currentUser) {
+    return <div className="text-red-500">Hata: Kullanıcı bilgisi alınamadı</div>
+  }
+  if (withdrawalsError) {
+    return <div className="text-red-500">Hata: Çekim talepleri alınamadı: {withdrawalsError.message}</div>
+  }
+  if (onlineUsersError) {
+    return <div className="text-red-500">Hata: Çevrimiçi kullanıcılar alınamadı: {onlineUsersError.message}</div>
+  }
+  if (offlineUsersError) {
+    return <div className="text-red-500">Hata: Çevrimdışı kullanıcılar alınamadı: {offlineUsersError.message}</div>
+  }
+  if (awayUsersError) {
+    return <div className="text-red-500">Hata: Molada olan kullanıcılar alınamadı: {awayUsersError.message}</div>
+  }
 
   const sortedWithdrawals = [...withdrawals].sort((a, b) => {
     const isCekimPersoneli = currentUser.role.toLowerCase() === "cekimpersoneli"
@@ -252,12 +1268,25 @@ export default function WithdrawPage() {
     return 0
   })
 
-  const onlineGrouped = groupUsersByRole(onlineUsers)
-  const offlineGrouped = groupUsersByRole(offlineUsers)
-  const awayGrouped = groupUsersByRole(awayUsers)
+  const filteredOnlineUsers = onlineUsers.filter((user: User) => user.role !== "spectator")
+  const filteredOfflineUsers = offlineUsers.filter((user: User) => user.role !== "spectator")
+  const filteredAwayUsers = awayUsers.filter((user: User) => user.role !== "spectator")
+
+  const onlineUsersWithPendingCount = filteredOnlineUsers.map((user: User) => ({
+    ...user,
+    pendingWithdrawalsCount: withdrawals.filter(
+      (withdrawal: Withdrawal) =>
+        withdrawal.handlingBy === user.id && withdrawal.withdrawalStatus === "pending",
+    ).length,
+  }))
+
+  const onlineGrouped = groupUsersByRole(onlineUsersWithPendingCount)
+  const offlineGrouped = groupUsersByRole(filteredOfflineUsers)
+  const awayGrouped = groupUsersByRole(filteredAwayUsers)
 
   return (
-    <div className="grid grid-cols-[1fr_250px]">
+    <div className="grid grid-cols-[1fr_230px]">
+      {/* Çekim talepleri tablosu */}
       <div className="glass-effect overflow-x-auto">
         <div className="table-container w-[110%]">
           <Table className="min-w-full table-auto table-compact">
@@ -283,15 +1312,29 @@ export default function WithdrawPage() {
                 </TableRow>
               ) : (
                 sortedWithdrawals.map((withdrawal: Withdrawal) => {
-                  const requestedAtStr = new Date(withdrawal.requestedAt).toLocaleString();
-                  const [requestedDate, requestedTime] = requestedAtStr.split(" ");
+                  const requestedAt = new Date(withdrawal.requestedAt)
+                  const requestedAtStr = format(requestedAt, 'dd-MM-yy HH:mm:ss');
+                  const [requestedDate, requestedTime] = requestedAtStr.split(' ')
 
                   return (
                     <TableRow key={withdrawal.id}>
                       <TableCell className="table-cell">{withdrawal.playerUsername}</TableCell>
-                      <TableCell className="table-cell">{withdrawal.playerFullname}</TableCell>
                       <TableCell className="table-cell">
-                        <div className="inline-flex gap-2 justify-center">
+                        <span
+                          className="text-blue-400 cursor-pointer hover:text-blue-500"
+                          onClick={() => {
+                            navigator.clipboard.writeText(withdrawal.playerFullname).then(() => {
+                              toast.success("Başarılı", { description: "Panoya müşteri adı kopyalandı!" });
+                            }).catch(() => {
+                              toast.error("Hata", { description: "Kopyalama başarısız oldu." });
+                            });
+                          }}
+                        >
+                          {withdrawal.playerFullname}
+                        </span>
+                      </TableCell>
+                      <TableCell className="table-cell">
+                        <div className="inline-flex gap-1.5 justify-center">
                           {!withdrawal.handlingBy &&
                             (currentUser.role.toLowerCase() === "cekimpersoneli" ||
                               currentUser.role.toLowerCase() === "admin" ||
@@ -335,7 +1378,7 @@ export default function WithdrawPage() {
                                         key={user.id}
                                         onClick={() => handleTransfer(withdrawal.id, user.id)}
                                       >
-                                        {user.username} ({user.role})
+                                        {user.username} ({translateRole(user.role)})
                                       </DropdownMenuItem>
                                     ))}
                                   {onlineUsers.filter(
@@ -360,7 +1403,7 @@ export default function WithdrawPage() {
                             Detay
                           </Button>
                           {currentUser.id !== withdrawal.handlingBy && withdrawal.handlingBy && (
-                            <Button size="sm" className="compact-btn" variant="lightBlue">
+                            <Button size="sm" className="compact-btn" variant="softPurple">
                               {withdrawal.handlerUsername}
                             </Button>
                           )}
@@ -375,11 +1418,18 @@ export default function WithdrawPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent side="right" align="center">
-                                  <DropdownMenuItem onClick={() => handleAction(withdrawal.id, "approve")}>
-                                    Onayla
+                                  <DropdownMenuItem onClick={() => handleActionSelect(withdrawal.id, "approve")}>
+                                    ONAY
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleAction(withdrawal.id, "reject")}>
-                                    Reddet
+                                  <DropdownMenuItem onClick={() => handleActionSelect(withdrawal.id, "manuelApprove")}>
+                                    MANUEL - ONAY
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleActionSelect(withdrawal.id, "reject")}>
+                                    RET
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleActionSelect(withdrawal.id, "manuelReject")}>
+                                    MANUEL - RET
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -387,17 +1437,36 @@ export default function WithdrawPage() {
                         </div>
                       </TableCell>
                       <TableCell className="table-cell">
-                        <Button size="sm" className="compact-btn">
+                        <span
+                          className="text-yellow-500 cursor-pointer hover:text-yellow-600 text-sm font-medium"
+                          onClick={() => { }}
+                        >
                           Görüntüle
-                        </Button>
+                        </span>
                       </TableCell>
                       <TableCell className="table-cell table-note">{withdrawal.note}</TableCell>
                       <TableCell className="table-cell whitespace-pre-line">
                         {`${requestedDate}\n${requestedTime}`}
                       </TableCell>
                       <TableCell className="table-cell">{withdrawal.transactionId}</TableCell>
-                      <TableCell className="table-cell">{withdrawal.method}</TableCell>
-                      <TableCell className="table-cell">{withdrawal.amount} TL</TableCell>
+                      <TableCell className="table-cell">
+                        <div className="flex justify-center items-center gap-1">
+                          {(withdrawal.method === "HizliKripto" || withdrawal.method === "Aninda_Kripto") && (
+                            <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                          )}
+                          {withdrawal.method}
+                        </div>
+                      </TableCell>
+                      <TableCell className="table-cell">
+                        <div className="flex justify-center items-center gap-1">
+                          {withdrawal.amount >= 10000 && (
+                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                          )}
+                          <span className={withdrawal.amount >= 10000 ? "text-red-500" : ""}>
+                            ₺{new Intl.NumberFormat('tr-TR').format(withdrawal.amount)}
+                          </span>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   )
                 })
@@ -407,7 +1476,8 @@ export default function WithdrawPage() {
         </div>
       </div>
 
-      <div className="glass-effect h-auto ml-2 p-2">
+      {/* Kullanıcılar paneli */}
+      <div className="glass-effect2 h-auto ml-2 p-2">
         <Tabs defaultValue="online" className="w-auto">
           <TabsList className="grid grid-cols-3 w-auto mb-2">
             <TabsTrigger value="online">
@@ -430,7 +1500,7 @@ export default function WithdrawPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="online" className="mt-0">
+          <TabsContent value="online" className="mt-0 overflow-y-auto flex-2 px-2">
             <div className="space-y-2">
               {onlineGrouped.length > 0 ? (
                 onlineGrouped.map((group) => (
@@ -446,6 +1516,7 @@ export default function WithdrawPage() {
                           role={user.role}
                           status={user.activityStatus.toLowerCase() as "online" | "offline" | "away"}
                           userId={user.id}
+                          pendingWithdrawalsCount={user.pendingWithdrawalsCount}
                           currentUser={currentUser}
                           onStatusChange={handleStatusChange}
                         />
@@ -459,7 +1530,7 @@ export default function WithdrawPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="away" className="mt-0">
+          <TabsContent value="away" className="mt-0 overflow-y-auto flex-2 px-2">
             <div className="space-y-2">
               {awayGrouped.length > 0 ? (
                 awayGrouped.map((group) => (
@@ -488,7 +1559,7 @@ export default function WithdrawPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="offline" className="mt-0">
+          <TabsContent value="offline" className="mt-0 overflow-y-auto flex-2 px-2">
             <div className="space-y-2">
               {offlineGrouped.length > 0 ? (
                 offlineGrouped.map((group) => (
@@ -518,6 +1589,194 @@ export default function WithdrawPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal: Onay/Ret için ek adım */}
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+      >
+        <DialogContent className="sm:max-w-[425px] bg-background rounded-lg shadow-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAction === "approve" ? "Talebi Onayla" :
+                selectedAction === "reject" ? "Talebi Reddet" :
+                  selectedAction === "manuelApprove" ? "Talebi Manuel Onayla" : "Talebi Manuel Reddet"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              {selectedAction === "reject" || selectedAction === "manuelReject" ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="category" className="text-left">Ana RET Sebebi <span className="text-red-500">*</span></Label>
+                    <Select
+                      value={selectedCategory}
+                      onValueChange={(value) => {
+                        setSelectedCategory(value)
+                        setSelectedSubCategory("")
+                        setSelectedRejectReason("")
+                        setFormValues({})
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seçiniz" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(rejectionCategories).map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedCategory && (
+                    rejectionCategories[selectedCategory] instanceof Array ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="reason" className="text-left">RET Sebebi <span className="text-red-500">*</span></Label>
+                        <Select
+                          value={selectedRejectReason}
+                          onValueChange={(value) => {
+                            setSelectedRejectReason(value)
+                            setFormValues({})
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Seçiniz" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(rejectionCategories[selectedCategory] as string[]).map((reason) => (
+                              <SelectItem key={reason} value={reason}>
+                                {translateRejectReason(reason)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="subCategory" className="text-left">Alt Kategori <span className="text-red-500">*</span></Label>
+                          <Select
+                            value={selectedSubCategory}
+                            onValueChange={(value) => {
+                              setSelectedSubCategory(value)
+                              setSelectedRejectReason("")
+                              setFormValues({})
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Seçiniz" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.keys(rejectionCategories[selectedCategory] as { [key: string]: string[] }).map((subCategory) => (
+                                <SelectItem key={subCategory} value={subCategory}>
+                                  {subCategory}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {selectedSubCategory && (
+                          <div className="space-y-2">
+                            <Label htmlFor="reason" className="text-left">RET Sebebi <span className="text-red-500">*</span></Label>
+                            <Select
+                              value={selectedRejectReason}
+                              onValueChange={(value) => {
+                                setSelectedRejectReason(value)
+                                setFormValues({})
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Seçiniz" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {((rejectionCategories[selectedCategory] as { [key: string]: string[] })[selectedSubCategory] as string[]).map((reason) => (
+                                  <SelectItem key={reason} value={reason}>
+                                    {translateRejectReason(reason)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </>
+                    )
+                  )}
+                  {selectedRejectReason && rejectionFieldComponents[selectedRejectReason as keyof typeof rejectionFieldComponents] && (
+                    React.createElement(rejectionFieldComponents[selectedRejectReason as keyof typeof rejectionFieldComponents], {
+                      formValues,
+                      setFormValues,
+                    })
+                  )}
+                </>
+              ) : null}
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="deleteRemainingBalance" className="text-left">Kalan Bakiyeyi Sil</Label>
+                <div>
+                  <Checkbox id="deleteRemainingBalance" name="deleteRemainingBalance" />
+                </div>
+              </div>
+              <div className="space-y-0">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="setBalance" className="text-left">Bakiyeyi Ayarla</Label>
+                  <div>
+                    <Checkbox
+                      id="setBalance"
+                      name="setBalance"
+                      checked={setBalanceChecked}
+                      onCheckedChange={(checked) => setSetBalanceChecked(checked as boolean)}
+                    />
+                  </div>
+                </div>
+                <div className="mt-1">
+                  <Input
+                    type="number"
+                    id="customBalance"
+                    name="customBalance"
+                    placeholder="Bakiye Miktarı Girin"
+                    className="w-[200px] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    disabled={!setBalanceChecked}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                className="compact-btn"
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setSelectedWithdrawalId(null)
+                  setSelectedAction(null)
+                  setSelectedCategory("")
+                  setSelectedSubCategory("")
+                  setSelectedRejectReason("")
+                  setSelectedWithdrawal(null)
+                  setFormValues({})
+                }}
+              >
+                İptal
+              </Button>
+              <Button
+                type="submit"
+                className="compact-btn"
+                disabled={
+                  (selectedAction === "reject" || selectedAction === "manuelReject") &&
+                  (!selectedCategory ||
+                    (selectedCategory === "Suistimal Sorunları" &&
+                      typeof rejectionCategories[selectedCategory] === 'object' &&
+                      !selectedSubCategory) ||
+                    !selectedRejectReason)
+                }
+              >
+                {selectedAction === "approve" || selectedAction === "manuelApprove" ? "Onayla" : "Reddet"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -527,6 +1786,7 @@ function PersonelCard({
   role,
   status,
   userId,
+  pendingWithdrawalsCount = 0,
   currentUser,
   onStatusChange,
 }: {
@@ -534,6 +1794,7 @@ function PersonelCard({
   role: string
   status: "online" | "away" | "offline"
   userId: string
+  pendingWithdrawalsCount?: number
   currentUser: CurrentUser
   onStatusChange: (userId: string, newStatus: "online" | "away" | "offline") => Promise<void>
 }) {
@@ -543,7 +1804,8 @@ function PersonelCard({
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={!canChangeStatus}>
         <div
-          className={`personel-card p-2 border border-[color:var(--border)] rounded-md bg-[color:var(--card)] shadow-sm ${canChangeStatus ? "cursor-pointer hover:bg-[color:var(--hover)]" : ""}`}
+          className={`personel-card p-2 border border-[color:var(--border)] rounded-md bg-[color:var(--card)] shadow-sm ${canChangeStatus ? "cursor-pointer hover:bg-[color:var(--hover)]" : ""
+            }`}
         >
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-[color:var(--secondary)] flex items-center justify-center text-[color:var(--primary)]">
@@ -563,10 +1825,13 @@ function PersonelCard({
               </svg>
             </div>
             <div>
-              <div className="font-medium text-[color:var(--primary)] text-sm">{name}</div>
+              <div className="font-medium text-[color:var(--primary)] text-sm">
+                {name}
+                {status === "online" && ` (${pendingWithdrawalsCount})`}</div>
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <div
-                  className={`status-indicator ${status === "online" ? "status-online" : status === "away" ? "status-away" : "status-offline"}`}
+                  className={`status-indicator ${status === "online" ? "status-online" : status === "away" ? "status-away" : "status-offline"
+                    }`}
                 ></div>
                 {translateRole(role)}
               </div>
