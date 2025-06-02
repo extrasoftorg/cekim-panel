@@ -1,44 +1,17 @@
+"use server"
+
 import { NextResponse } from 'next/server';
 import { db } from '@/db/index';
 import { usersTable, userStatusLogsTable, withdrawalsTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
 import { z } from 'zod';
 import redis from '@/db/redis';
+import { getCurrentUser } from '@/lib/auth'; 
 
 const updateStatusSchema = z.object({
   status: z.enum(['online', 'away', 'offline'], { message: 'Geçersiz durum' }),
   userId: z.string().uuid(),
 });
-
-async function getCurrentUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-
-    if (!payload.userId || typeof payload.userId !== 'string') {
-      return null;
-    }
-
-    const user = await db
-      .select({ id: usersTable.id, role: usersTable.role })
-      .from(usersTable)
-      .where(eq(usersTable.id, payload.userId))
-      .limit(1)
-      .then(res => res[0]);
-
-    return user || null;
-  } catch (error) {
-    return null;
-  }
-}
 
 export async function GET(request: Request) {
   try {
@@ -69,7 +42,7 @@ export async function GET(request: Request) {
 
     const user = await getCurrentUser();
     if (!user) {
-      return null;
+      return NextResponse.json({ success: false, message: 'Kullanıcı oturumu bulunamadı' }, { status: 401 }); // null yerine NextResponse
     }
 
     if (fetchAll === 'true') {
@@ -113,6 +86,7 @@ export async function GET(request: Request) {
       role: userData[0].role,
     });
   } catch (error) {
+    console.error('GET /api/users: Hata:', error);
     return NextResponse.json({ success: false, message: 'Bir hata oluştu' }, { status: 500 });
   }
 }
@@ -121,15 +95,17 @@ export async function POST(request: Request) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
+      console.error('POST /api/users: Kullanıcı oturumu bulunamadı');
       return NextResponse.json({ success: false, message: 'Kullanıcı oturumu bulunamadı' }, { status: 401 });
     }
 
     const body = await request.json();
     const { status, userId } = updateStatusSchema.parse(body);
-
     const currentUserRole = currentUser.role.toLowerCase();
+    
     if (userId !== currentUser.id) {
       if (currentUserRole !== 'admin' && currentUserRole !== 'cekimsorumlusu') {
+        console.error('POST /api/users: Yetki hatası:', { userId, currentUserId: currentUser.id });
         return NextResponse.json({ success: false, message: 'Bu işlemi gerçekleştirmek için yetkiniz yok' }, { status: 403 });
       }
     }
@@ -142,12 +118,14 @@ export async function POST(request: Request) {
       .then(res => res[0]);
 
     if (!targetUser) {
+      console.error('POST /api/users: Hedef kullanıcı bulunamadı:', userId);
       return NextResponse.json({ success: false, message: 'Hedef kullanıcı bulunamadı' }, { status: 404 });
     }
 
     const targetUserRole = targetUser.role.toLowerCase();
 
     if (currentUserRole === 'cekimsorumlusu' && targetUserRole !== 'cekimpersoneli' && userId !== currentUser.id) {
+      console.error('POST /api/users: Yetki hatası, yalnızca çekim personeli güncellenebilir:', { userId, targetUserRole });
       return NextResponse.json({ success: false, message: 'Yalnızca çekim personelinin durumunu güncelleyebilirsiniz' }, { status: 403 });
     }
 
@@ -176,15 +154,14 @@ export async function POST(request: Request) {
               eq(withdrawalsTable.withdrawalStatus, 'pending')
             )
           );
+        console.log('POST /api/users: Çekim talepleri sıfırlandı:', { userId });
       }
 
       if (targetUserRole === 'cekimpersoneli') {
         if (status === 'online') {
           await redis.lpush('active_personnel', userId);
-          console.log(`Redis: ${userId} active_personnel listesine eklendi.`);
         } else {
           await redis.lrem('active_personnel', 0, userId);
-          console.log(`Redis: ${userId} active_personnel listesinden çıkarıldı.`);
         }
       }
     });
@@ -192,8 +169,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, message: `Durum ${status} olarak güncellendi` });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('POST /api/users: Zod şema hatası:', error.errors);
       return NextResponse.json({ success: false, message: error.errors[0].message }, { status: 400 });
     }
+    console.error('POST /api/users: Genel hata:', error);
     return NextResponse.json({ success: false, message: 'Bir hata oluştu' }, { status: 500 });
   }
 }
