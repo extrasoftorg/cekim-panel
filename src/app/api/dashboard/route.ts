@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import redis from '@/db/redis';
-import { getCurrentUser } from "../current-user/route";
+import { getCurrentUser } from "@/lib/auth";
 
 const dashboardSchema = z.object({
     startDate: z.string().datetime({ message: "Geçerli bir tarih gerekli" }).optional(),

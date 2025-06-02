@@ -3,8 +3,7 @@
 import { NextResponse, NextRequest } from "next/server"
 import { db } from '@/db/index';
 import { reportsTable } from "@/db/schema";
-import { eq } from 'drizzle-orm';
-import { getCurrentUser } from "../current-user/route"
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: Request) {
     try {

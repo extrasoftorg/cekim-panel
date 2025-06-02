@@ -7,7 +7,7 @@ import { db } from '@/db';
 import { usersTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function getCurrentUser() {
+async function getCurrentUser() {
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
     if (!token) {
