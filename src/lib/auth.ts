@@ -1,4 +1,4 @@
-import 'server-only';
+   import 'server-only';
    import { cookies } from 'next/headers';
    import { jwtVerify } from 'jose';
    import { db } from '@/db';
@@ -7,7 +7,7 @@ import 'server-only';
 
    export async function getCurrentUser() {
        const cookieStore = await cookies();
-       const token = cookieStore.get('next.config')?.value;
+       const token = cookieStore.get('token')?.value;
        if (!token) {
            console.error('Token bulunamadı');
            return null;
