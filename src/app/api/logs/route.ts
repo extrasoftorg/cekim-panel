@@ -4,7 +4,7 @@ import { db } from '@/db/index';
 import { eq, desc } from 'drizzle-orm';
 import { userStatusLogsTable, usersTable } from '@/db/schema';
 import redis from "@/db/redis"
-import { getCurrentUser } from "../current-user/route"
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: Request) {
     try {
