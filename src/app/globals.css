@@ -145,9 +145,7 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html {
-    font-size: 16px !important; /* Sabit font-size */
-  }
+
   body {
     @apply bg-background text-foreground;
   }
