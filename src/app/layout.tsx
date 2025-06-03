@@ -7,27 +7,19 @@ import { useState } from "react";
 import "./globals.css";
 import { usePathname } from 'next/navigation';
 import { Toaster } from "@/components/ui/sonner";
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Cekim Panel",
-  description: "Cekim Panel",
-};
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
   const [queryClient] = useState(() => new QueryClient());
   const pathname = usePathname();
   const isLoginPage = pathname === '/login' || pathname === '/login/verification';
 
   return (
     <html lang="tr">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </head>
       <body>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" defaultTheme="light">
