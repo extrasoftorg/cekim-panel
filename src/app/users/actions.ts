@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth";
 
 const registerUserSchema = z.object({
   username: z.string().min(3, { message: "Kullanıcı adı en az 3 karakter olmalı" }),
@@ -40,23 +41,13 @@ async function checkUserPermissions() {
     return { success: false, message: "Kullanıcı oturumu bulunamadı." };
   }
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/current-user`, {
-    headers: {
-      Cookie: `token=${token}`,
-    },
-  });
+  const user = await getCurrentUser();
 
-  if (!response.ok) {
-    console.error("Current user alınamadı:", response.status);
+  if (!user) {
+    console.error("Current user alınamadı: Kullanıcı bulunamadı");
     return { success: false, message: "Kullanıcı bilgisi alınamadı" };
   }
 
-  const result = await response.json();
-  if (!result.success || !result.data) {
-    return { success: false, message: result.message || "Kullanıcı bilgisi alınamadı" };
-  }
-
-  const user = result.data;
   const role = user.role?.toLowerCase();
 
   if (!role) {
@@ -78,6 +69,9 @@ export async function register(formData: FormData) {
     }
 
     const user = permissionCheck.user;
+    if (!user) {
+      return { success: false, message: "Kullanıcı bilgisi alınamadı" };
+    }
     const role = user.role.toLowerCase();
 
     const rawData = {
@@ -162,6 +156,9 @@ export async function updateUser(formData: FormData) {
     }
 
     const user = permissionCheck.user;
+    if (!user) {
+      return { success: false, message: "Kullanıcı bilgisi alınamadı" };
+    }
     const role = user.role.toLowerCase();
 
     const rawData = {
@@ -288,8 +285,8 @@ export async function deleteUser(formData: FormData) {
       const message = error.message.includes("foreign key constraint")
         ? "Kullanıcı silinemedi: İlgili log kayıtları silinemedi (foreign key constraint hatası)"
         : error.message.includes("Kullanıcı bulunamadı")
-        ? "Kullanıcı bulunamadı"
-        : `Kullanıcı silinirken bir hata oluştu: ${error.message}`;
+          ? "Kullanıcı bulunamadı"
+          : `Kullanıcı silinirken bir hata oluştu: ${error.message}`;
       return { success: false, message };
     }
     return { success: false, message: "Bilinmeyen bir hata oluştu, lütfen tekrar deneyin" };
