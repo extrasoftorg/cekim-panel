@@ -1051,6 +1051,7 @@ export default function WithdrawPage() {
   const [selectedRejectReason, setSelectedRejectReason] = useState<string>("")
   const [formValues, setFormValues] = useState<FormValues>({})
   const [setBalanceChecked, setSetBalanceChecked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Realtime dinleyiciyi useEffect ile kur
   useEffect(() => {
@@ -1149,9 +1150,12 @@ export default function WithdrawPage() {
     return true
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     if ((selectedAction === "reject" || selectedAction === "manuelReject") && !checkReqFields()) {
+      setIsSubmitting(false);
       return;
     }
     const formData = new FormData(e.currentTarget);
@@ -1164,7 +1168,8 @@ export default function WithdrawPage() {
         ? undefined
         : Number(customBalanceRaw);
     console.log(customBalance);
-    handleAction(selectedWithdrawalId!, selectedAction!, additionalInfo, deleteRemainingBalance, setBalance, customBalance);
+    await handleAction(selectedWithdrawalId!, selectedAction!, additionalInfo, deleteRemainingBalance, setBalance, customBalance);
+    setIsSubmitting(false);
   }
 
   
@@ -1755,7 +1760,9 @@ export default function WithdrawPage() {
                   setSelectedRejectReason("")
                   setSelectedWithdrawal(null)
                   setFormValues({})
+                  setIsSubmitting(false)
                 }}
+                disabled={isSubmitting}
               >
                 İptal
               </Button>
@@ -1763,12 +1770,13 @@ export default function WithdrawPage() {
                 type="submit"
                 className="compact-btn"
                 disabled={
-                  (selectedAction === "reject" || selectedAction === "manuelReject") &&
-                  (!selectedCategory ||
-                    (selectedCategory === "Suistimal Sorunları" &&
-                      typeof rejectionCategories[selectedCategory] === 'object' &&
-                      !selectedSubCategory) ||
-                    !selectedRejectReason)
+                  isSubmitting ||
+                  ((selectedAction === "reject" || selectedAction === "manuelReject") &&
+                    (!selectedCategory ||
+                      (selectedCategory === "Suistimal Sorunları" &&
+                        typeof rejectionCategories[selectedCategory] === 'object' &&
+                        !selectedSubCategory) ||
+                      !selectedRejectReason))
                 }
               >
                 {selectedAction === "approve" || selectedAction === "manuelApprove" ? "Onayla" : "Reddet"}
