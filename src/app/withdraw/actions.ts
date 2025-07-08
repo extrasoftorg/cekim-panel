@@ -62,7 +62,8 @@ export async function updateWithdrawalStatus(formData: FormData) {
     const id = parseInt(formData.get('id') as string);
     const action = formData.get('action') as 'approve' | 'reject' | 'manuelApprove' | 'manuelReject';
     const deleteRemainingBalance = formData.get('deleteRemainingBalance') === 'true';
-    const rejectReason = formData.get('rejectReason') as string | null
+    const rejectReasonRaw = formData.get('rejectReason');
+    const rejectReason = (action === 'approve' || action === 'manuelApprove') && rejectReasonRaw === null ? undefined : rejectReasonRaw;
     const additionalInfo = formData.get('additionalInfo') as string | null
     const setBalance = formData.get('setBalance') === 'true';
     const customBalanceRaw = formData.get('customBalance');
@@ -71,11 +72,8 @@ export async function updateWithdrawalStatus(formData: FormData) {
         ? undefined
         : Number(customBalanceRaw);
 
-    console.log("önce", setBalance, customBalance)
-
     const validatedData = updateWithdrawalSchema.parse({ id, action, deleteRemainingBalance, rejectReason, additionalInfo, setBalance, customBalance });
 
-    console.log("validated sonra", validatedData)
     const withdrawal = await db
       .select()
       .from(withdrawalsTable)
@@ -130,7 +128,7 @@ export async function updateWithdrawalStatus(formData: FormData) {
     let parsedAdditionalInfo = null;
     let updatedAdditionalInfo = null;
 
-    if (additionalInfo && (action === 'reject' || action === 'manuelReject')) {
+    if (additionalInfo && (action === 'reject' || action === 'manuelReject' || action === 'approve' || action === 'manuelApprove')) {
       try {
         parsedAdditionalInfo = JSON.parse(additionalInfo);
 
@@ -168,8 +166,6 @@ export async function updateWithdrawalStatus(formData: FormData) {
     }
 
     combinedNote = combinedNote ? `${combinedNote}${noteSuffix}` : noteSuffix.replace(' | ', '');
-    console.log(updatedAdditionalInfo)
-    console.log(combinedNote)
 
     if (['approve', 'reject'].includes(validatedData.action)) {
       const authToken = process.env.BETCONSTRUCT_API_KEY;

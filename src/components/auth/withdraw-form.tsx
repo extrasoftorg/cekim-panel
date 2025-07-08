@@ -1610,7 +1610,7 @@ export default function WithdrawPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
-              {selectedAction === "reject" || selectedAction === "manuelReject" ? (
+              {(selectedAction === "reject" || selectedAction === "manuelReject") ? (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="category" className="text-left">Ana RET Sebebi <span className="text-red-500">*</span></Label>
@@ -1716,6 +1716,26 @@ export default function WithdrawPage() {
                   )}
                 </>
               ) : null}
+              {(selectedAction === "approve" || selectedAction === "manuelApprove") && (
+                <div className="space-y-2">
+                  <Label htmlFor="additionalInfo" className="text-left">
+                    Ek Bilgi
+                  </Label>
+                  <Textarea
+                    id="additionalInfo"
+                    name="additionalInfo"
+                    value={formValues.additionalInfo || ""}
+                    onChange={(e) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        additionalInfo: e.target.value,
+                      }))
+                    }
+                    placeholder="Ek Bilgi"
+                    className="w-full resize-none"
+                  />
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <Label htmlFor="deleteRemainingBalance" className="text-left">Kalan Bakiyeyi Sil</Label>
                 <div>
