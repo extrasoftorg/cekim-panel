@@ -65,7 +65,11 @@ export async function updateWithdrawalStatus(formData: FormData) {
     const rejectReason = formData.get('rejectReason') as string | null
     const additionalInfo = formData.get('additionalInfo') as string | null
     const setBalance = formData.get('setBalance') === 'true';
-    const customBalance = parseInt(formData.get('customBalance') as string);
+    const customBalanceRaw = formData.get('customBalance');
+    const customBalance =
+      customBalanceRaw === null || customBalanceRaw === ""
+        ? undefined
+        : Number(customBalanceRaw);
 
     console.log("önce", setBalance, customBalance)
 
