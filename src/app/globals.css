@@ -66,39 +66,40 @@
 }
 
 :root {
-  --primary: oklch(0.8 0.2 80);
+  /* Updated light theme with amber/gold accents */
+  --primary: oklch(0.65 0.15 75); /* Warm amber for primary */
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --table: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: oklch(0.98 0.005 85); /* Warm white background */
+  --foreground: oklch(0.15 0.01 85); /* Dark warm text */
+  --card: oklch(0.99 0.003 85); /* Slightly warm card background */
+  --table: oklch(0.97 0.008 85); /* Warm table background */
+  --card-foreground: oklch(0.15 0.01 85);
+  --popover: oklch(0.99 0.003 85);
+  --popover-foreground: oklch(0.15 0.01 85);
+  --primary-foreground: oklch(0.98 0.005 85); /* Light text on primary */
+  --secondary: oklch(0.94 0.01 80); /* Warm secondary background */
+  --secondary-foreground: oklch(0.25 0.02 75);
+  --muted: oklch(0.95 0.008 80);
+  --muted-foreground: oklch(0.45 0.01 75);
+  --accent: oklch(0.96 0.008 80);
+  --accent-foreground: oklch(0.25 0.02 75);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.88 0.01 80); /* Warm border */
+  --input: oklch(0.92 0.008 80); /* Warm input background */
+  --ring: oklch(0.65 0.15 75); /* Amber ring to match primary */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.97 0.008 85);
+  --sidebar-foreground: oklch(0.15 0.01 85);
+  --sidebar-primary: oklch(0.65 0.15 75); /* Amber sidebar primary */
+  --sidebar-primary-foreground: oklch(0.98 0.005 85);
+  --sidebar-accent: oklch(0.94 0.01 80);
+  --sidebar-accent-foreground: oklch(0.25 0.02 75);
+  --sidebar-border: oklch(0.88 0.01 80);
+  --sidebar-ring: oklch(0.65 0.15 75);
 }
 
 .dark {
@@ -119,26 +120,20 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
 
-  /* Bu satırları değiştirin */
+  /* Amber/gold themed borders and inputs */
   --border: oklch(0.8 0.2 80 / 30%);
-  /* Amber/altın rengi, %30 opaklıkla */
   --input: oklch(0.8 0.2 80 / 20%);
-  /* Amber/altın rengi, %20 opaklıkla */
   --ring: oklch(0.8 0.2 80 / 50%);
-  /* Amber/altın rengi, %50 opaklıkla */
 
-  /* Sidebar değişkenlerini de güncelleyin */
+  /* Sidebar variables with amber theme */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.8 0.2 80);
-  /* Amber/altın rengi */
   --sidebar-primary-foreground: oklch(0.205 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.8 0.2 80 / 30%);
-  /* Amber/altın rengi, %30 opaklıkla */
   --sidebar-ring: oklch(0.8 0.2 80 / 50%);
-  /* Amber/altın rengi, %50 opaklıkla */
 }
 
 @layer base {
@@ -173,7 +168,6 @@
 /* Table cell için özel stil */
 .table-cell {
   @apply px-4 py-3 text-center text-sm;
-  /* Boyutlar artırıldı */
 }
 
 .table-note {
@@ -215,38 +209,32 @@
 
 .table-compact {
   font-size: 0.95rem;
-  /* 0.9rem'den 0.95rem'e artırıldı */
   line-height: 1.35rem;
-  /* 1.3rem'den 1.35rem'e artırıldı */
 }
 
 .table-compact th,
 .table-compact td {
   padding: 0.65rem 0.9rem;
-  /* 0.6rem 0.85rem'den artırıldı */
 }
 
 /* Butonlar için özel stil */
 .compact-btn {
   @apply text-[11px] font-bold h-7.5 px-2.5 rounded-sm;
-  /* text-[10px], px-2.5'den artırıldı */
   border-radius: 0.25rem;
 }
 
-/* Dropdown menüler için özel stiller - önceki haline geri döndürüldü */
+/* Dropdown menüler için özel stiller */
 .dropdown-menu-compact {
   @apply text-xs py-0.5;
   width: auto;
   min-width: 140px;
-  /* 150px'den 140px'e geri döndürüldü */
 }
 
 .dropdown-menu-compact .dropdown-item {
   @apply px-2 py-1 text-xs;
-  /* px-2.5 py-1.5'den px-2 py-1'e geri döndürüldü */
 }
 
-/* Filter bar için özel stiller - globals.css dosyasına ekleyin */
+/* Filter bar için özel stiller */
 .filter-input {
   @apply h-10 text-sm;
 }
@@ -272,6 +260,42 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Light themed table styles */
+.light-table-container {
+  background-color: var(--card);
+  border-radius: 0.75rem;
+  border: 1px solid var(--primary);
+  border-opacity: 0.3;
+  padding: 1rem;
+}
+
+.light-table-row {
+  background-color: var(--secondary);
+  border-radius: 0.5rem;
+  border: 1px solid oklch(0.65 0.15 75 / 0.2);
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.light-table-header {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.light-table-value {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.light-table-label {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
 }
 
 /* Dark themed table styles */
@@ -396,6 +420,16 @@
 .processing-time-value {
   font-size: 0.75rem;
   color: var(--primary);
+}
+
+/* Light mode specific adjustments */
+.light .processing-time-table {
+  background-color: var(--card);
+}
+
+.light .processing-time-row {
+  background-color: var(--secondary);
+  border-color: oklch(0.65 0.15 75 / 0.1);
 }
 
 /* Dark mode specific adjustments */
