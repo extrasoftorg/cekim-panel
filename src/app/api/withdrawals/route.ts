@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/db/index';
-import { withdrawalsTable, usersTable, withdrawalTransfer } from '@/db/schema';
+import { withdrawalsTable, usersTable } from '@/db/schema';
 import { eq, or, desc, sql } from 'drizzle-orm';
 import redis from '@/db/redis';
 
@@ -17,8 +17,6 @@ const withdrawalSchema = z.object({
   requestedAt: z.string().refine((val) => !isNaN(Date.parse(val))),
   message: z.string().min(1),
 });
-
-const API_KEY = process.env.API_KEY;
 
 export async function GET(request: Request) {
   try {
@@ -74,11 +72,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const apiKey = request.headers.get('x-api-key');
-    if (!apiKey || apiKey !== API_KEY) {
-      return NextResponse.json({ error: 'Geçersiz veya eksik API anahtarı' }, { status: 401 });
-    }
-
     const body = await request.json();
     const validatedData = withdrawalSchema.parse(body);
 

@@ -1,0 +1,185 @@
+export type EvaluationFactor = 
+  | 'crypto_withdrawal'
+  | 'exceed_manual_review_threshold'
+  | 'manual_review_player'
+  | 'suspicious_game_exposure'
+  | 'suspicious_sport_exposure'
+  | 'high_balance_without_deposit'
+  | 'excluded_from_bonus'
+  | 'ip_conflict'
+  | 'has_safe_bets'
+  | 'hidden_sport_bets'
+  | 'hidden_free_spin_winnings'
+  | 'limited_player'
+  | 'exceed_bonus_balance_threshold'
+  | 'no_activity'
+  | 'withdrawal_amount_less_than_deposit'
+  | 'unmet_sports_wagering'
+  | 'unmet_casino_wagering'
+  | 'unmet_bonus_sports_wagering'
+  | 'unmet_bonus_casino_wagering'
+  | 'has_active_sport_bets'
+  | 'invalid_player_identity'
+  | 'invalid_amount'
+  | 'exceed_player_activity_max_amount'
+  | 'under_player_activity_min_amount'
+  | 'total_withdrawal_limit_by_deposit_amount_exceeded'
+  | 'late_request'
+  | 'early_withdrawal_attempt'
+  | 'daily_withdrawal_limit_exceeded'
+  | 'requires_full_withdrawal'
+  | 'payment_method_disabled';
+
+
+export const EvaluationToRejectReasonMap: Record<string, string> = {
+  'unmet_sports_wagering': 'anapara_cevrim',
+  'unmet_casino_wagering': 'anapara_cevrim',
+  'unmet_bonus_sports_wagering': 'acik_bonus_cevrim',
+  'unmet_bonus_casino_wagering': 'acik_bonus_cevrim',
+  'has_active_sport_bets': 'acik_bahis_cevrim',
+  'invalid_player_identity': 'tc_hata',
+  'invalid_amount': 'on_katlari',
+  'exceed_player_activity_max_amount': 'bonus_sinir',
+  'under_player_activity_min_amount': 'bonus_sinir',
+  'total_withdrawal_limit_by_deposit_amount_exceeded': 'yatirim_sinir',
+  'late_request': 'yeni_gun',
+  'early_withdrawal_attempt': 'sekiz_saatte_cekim',
+  'daily_withdrawal_limit_exceeded': '',
+  'requires_full_withdrawal': 'anapara_cevrim',
+  'payment_method_disabled': 'yontem_sorunu',
+};
+
+
+export const EvaluationFactorNotes: Record<string, string> = {
+  'crypto_withdrawal': 'Kripto yöntemi ile çekim, manuel inceleme gerekmektedir.',
+  'exceed_manual_review_threshold': 'Manuel inceleme için belirlenen çekim limiti aşıldı.', 
+  'manual_review_player': 'Manuele alınmış kullanıcı.',
+  'suspicious_game_exposure': 'Riskli oyunlarda bahis alımı mevcut.', 
+  'suspicious_sport_exposure': 'Riskli spor bahisleri mevcut.',
+  'high_balance_without_deposit': 'Yatırım yapılmadan önceki bakiye, belirlenen bakiye limitini aşıyor.',
+  'excluded_from_bonus': '"Bonus Kullanamaz" kategorisinde olan kullanıcı fakat son aktivitesi bonustur.',
+  'ip_conflict': 'IP çakışması tespit edildi: {conflictInfo}',
+  'has_safe_bets': 'Safe bahis alımı mevcut.', 
+  'hidden_sport_bets': 'Bet saklama tespit edildi. Bahis ID\'leri: {betIds}', 
+  'hidden_free_spin_winnings': '{id} ID\'li {product} oyunda, {date} {time} tarihinde, {amount} TL kazancı, geçmiş finansal işlemlere ait bir FreeSpin veya Spin\'den gelmektedir.',
+  'limited_player': 'Bonus "Kullanamaz" kategorisinde olan kullanıcı.',
+  'exceed_bonus_balance_threshold': 'Kullanıcı, çevrim şartını tamamlamadan önce bonus cüzdanında yüksek bir bakiyeye ulaştı.',
+  'no_activity': 'Kullanıcının son 30 günde aktivitesi yok.',
+  'withdrawal_amount_less_than_deposit': 'Çekim tutarı, yatırıma eşit veya daha az.',
+  'unmet_sports_wagering': 'Spor çevrim şartı eksik. Gerekli: {requiredWager} TL, Tamamlanan: {settledBetWager} TL, Kalan: {remaining} TL',
+  'unmet_casino_wagering': 'Casino çevrim şartı eksik. Gerekli: {requiredWager} TL, Tamamlanan: {wager} TL, Kalan: {remaining} TL',
+  'unmet_bonus_sports_wagering': 'Bonus spor çevrim şartı eksik. Gerekli: {requiredWager} TL, Tamamlanan: {settledBetWager} TL, Kalan: {remaining} TL',
+  'unmet_bonus_casino_wagering': 'Bonus casino çevrim şartı eksik. Gerekli: {requiredWager} TL, Tamamlanan: {wager} TL, Kalan: {remaining} TL',
+  'has_active_sport_bets': 'Aktif spor bahsi mevcut.',
+  'invalid_player_identity': 'TC Kimlik numarası hatalı.',
+  'invalid_amount': 'Geçersiz çekim tutarı. Küsüratlı veya minimum çekim tutarının altında talep.',
+  'exceed_player_activity_max_amount': 'Maksimum çekim limiti aşıldı.',
+  'under_player_activity_min_amount': 'Minimum çekim limiti altında.',
+  'total_withdrawal_limit_by_deposit_amount_exceeded': 'Yatırıma bağlı maximum çekim limiti aşıldı.',
+  'late_request': 'Yeni gün talep.',
+  'early_withdrawal_attempt': 'Son çekim talebinden sonra geçmesi gereken minimum süre dolmadı.',
+  'daily_withdrawal_limit_exceeded': 'Günlük kesili üye.',
+  'requires_full_withdrawal': 'Tüm bakiye talep verebilirsiniz.',
+  'payment_method_disabled': 'Ödeme yöntemi devre dışı. Farklı bir yöntem deneyiniz.',
+};
+
+export function mapEvaluationFactorToRejectReason(factor: EvaluationFactor): string | null {
+  return EvaluationToRejectReasonMap[factor] || null;
+}
+
+export function findFirstRejectReason(factors: EvaluationFactor[]): string | null {
+  for (const factor of factors) {
+    const reason = mapEvaluationFactorToRejectReason(factor);
+    if (reason) return reason;
+  }
+  return null;
+}
+
+export function generateFactorNote(factor: EvaluationFactor, metadata?: Record<string, any>): string {
+  const template = EvaluationFactorNotes[factor];
+  if (!template) {
+    return `Factor: ${factor}`;
+  }
+
+  if (!metadata) {
+    return template;
+  }
+
+  let note = template;
+
+  switch (factor) {
+    case 'unmet_sports_wagering':
+    case 'unmet_bonus_sports_wagering':
+      const sportProgress = metadata.sportWageringProgress;
+      if (sportProgress) {
+        const remaining = sportProgress.requiredWager - sportProgress.settledBetWager;
+        note = note
+          .replace('{requiredWager}', sportProgress.requiredWager?.toString() || '0')
+          .replace('{settledBetWager}', sportProgress.settledBetWager?.toString() || '0')
+          .replace('{activeBetWager}', sportProgress.activeBetWager?.toString() || '0')
+          .replace('{remaining}', remaining?.toString() || '0');
+      }
+      break;
+
+    case 'unmet_casino_wagering':
+    case 'unmet_bonus_casino_wagering':
+      const casinoProgress = metadata.casinoWageringProgress;
+      if (casinoProgress) {
+        const remaining = casinoProgress.requiredWager - casinoProgress.wager;
+        note = note
+          .replace('{requiredWager}', casinoProgress.requiredWager?.toString() || '0')
+          .replace('{wager}', casinoProgress.wager?.toString() || '0')
+          .replace('{remaining}', remaining?.toString() || '0');
+      }
+      break;
+
+    case 'hidden_sport_bets':
+      const hiddenBets = metadata.hiddenSportBets;
+      if (hiddenBets && Array.isArray(hiddenBets)) {
+        const betIds = hiddenBets.map(bet => bet.id).join(', ');
+        note = note.replace('{betIds}', betIds);
+      }
+      break;
+
+    case 'hidden_free_spin_winnings':
+      const hiddenWinnings = metadata.hiddenFreeSpinWinnings;
+      if (hiddenWinnings && Array.isArray(hiddenWinnings)) {
+        const firstWin = hiddenWinnings[0];
+        if (firstWin) {
+          const date = new Date(firstWin.createdAt);
+          const formattedDate = date.toLocaleDateString('tr-TR');
+          const formattedTime = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+          
+          note = note
+            .replace('{id}', firstWin.id?.toString() || '')
+            .replace('{product}', firstWin.product || 'Oyun')
+            .replace('{date}', formattedDate)
+            .replace('{time}', formattedTime)
+            .replace('{amount}', firstWin.amount?.toString() || '0');
+        }
+      }
+      break;
+
+    case 'ip_conflict':
+      const ipConflict = metadata.ipConflict;
+      if (ipConflict && ipConflict.ips) {
+        const conflictInfo = ipConflict.ips.map((ipData: any) => 
+          `IP: ${ipData.ip}, Oyuncular: ${ipData.players.map((p: any) => p.username).join(', ')}`
+        ).join(' | ');
+        note = note.replace('{conflictInfo}', conflictInfo);
+      }
+      break;
+
+    default:
+      break;
+  }
+
+  return note;
+}
+
+export function generateCombinedNote(factors: EvaluationFactor[], metadata?: Record<string, any>): string {
+  if (factors.length === 0) return '';
+  
+  const notes = factors.map(factor => generateFactorNote(factor, metadata));
+  return notes.join(' | ');
+}
