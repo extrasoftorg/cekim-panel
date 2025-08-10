@@ -47,6 +47,20 @@ export const EvaluationToRejectReasonMap: Record<string, string> = {
   'daily_withdrawal_limit_exceeded': '',
   'requires_full_withdrawal': 'anapara_cevrim',
   'payment_method_disabled': 'yontem_sorunu',
+//
+  'ip_conflict': 'ip_coklu',
+  'has_safe_bets': 'safe_bahis',
+  'excluded_from_bonus': 'kurma_bahis',
+  'suspicious_game_exposure': 'casino_kurma_bahis',
+  'suspicious_sport_exposure': 'kurma_bahis',
+  'high_balance_without_deposit': 'kurma_bahis',
+  'hidden_sport_bets': 'yatirim_bonus_suistimal',
+  'hidden_free_spin_winnings': 'yatirim_bonus_suistimal',
+  'limited_player': 'kurma_bahis',
+  'exceed_bonus_balance_threshold': 'anapara_cevrim',
+  'no_activity': 'ozel_oyun_kontrol',
+  'withdrawal_amount_less_than_deposit': 'kurma_bahis',
+  'crypto_withdrawal': 'yontem_sorunu'
 };
 
 
@@ -181,5 +195,32 @@ export function generateCombinedNote(factors: EvaluationFactor[], metadata?: Rec
   if (factors.length === 0) return '';
   
   const notes = factors.map(factor => generateFactorNote(factor, metadata));
+  return notes.join(' | ');
+}
+
+// Otomatik değerlendirme factor'ı için reject reason bulan fonksiyon
+export function getAutoEvaluationFactorRejectReason(evaluationFactor: string): string | null {
+  return EvaluationToRejectReasonMap[evaluationFactor] || null;
+}
+
+// Otomatik değerlendirme factor'ları için ilk reject reason'ı bulan fonksiyon  
+export function findFirstAutoEvaluationRejectReason(evaluationFactors: string[]): string | null {
+  for (const factor of evaluationFactors) {
+    const reason = getAutoEvaluationFactorRejectReason(factor);
+    if (reason && reason !== '') return reason;
+  }
+  return null;
+}
+
+// Otomatik değerlendirme factor'ı için note oluşturan fonksiyon
+export function generateAutoEvaluationFactorNote(evaluationFactor: string, metadata?: Record<string, any>): string {
+  return generateFactorNote(evaluationFactor as EvaluationFactor, metadata);
+}
+
+// Otomatik değerlendirme factor'ları için combined note oluşturan fonksiyon
+export function generateAutoEvaluationFactorsCombinedNote(evaluationFactors: string[], metadata?: Record<string, any>): string {
+  if (evaluationFactors.length === 0) return '';
+  
+  const notes = evaluationFactors.map(factor => generateAutoEvaluationFactorNote(factor, metadata));
   return notes.join(' | ');
 }

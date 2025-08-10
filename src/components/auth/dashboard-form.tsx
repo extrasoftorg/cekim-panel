@@ -29,6 +29,8 @@ interface Stats {
   fastestApprovers: { handlerUsername: string; avgApprovalDuration: number }[]
   fastestRejecters: { handlerUsername: string; avgRejectionDuration: number }[]
   rejectReasonsStats: { [key: string]: { count: number; totalAmount: number } }
+  botApproved: number
+  botRejected: number
 }
 
 interface Statistic {
@@ -222,6 +224,8 @@ export function DashboardForm() {
     fastestApprovers: [],
     fastestRejecters: [],
     rejectReasonsStats: {},
+    botApproved: 0,
+    botRejected: 0,
   }
 
   const {
@@ -235,11 +239,12 @@ export function DashboardForm() {
     fastestApprovers,
     fastestRejecters,
     rejectReasonsStats,
+    botApproved,
+    botRejected,
   } = stats
 
-  const botOnayli = totalApproved - totalManuelApproved
-  const botRet = totalRejected - totalManuelRejected
-  const botOnayYuzdesi = totalWithdrawals > 0 ? (botOnayli / totalWithdrawals) * 100 : 0
+  const botTotalOperations = botApproved + botRejected
+  const botApprovalRate = botTotalOperations > 0 ? (botApproved / botTotalOperations) * 100 : 0
 
   const statistics: Statistic[] = useMemo(
     () => [
@@ -248,12 +253,12 @@ export function DashboardForm() {
       createStatistic(<XCircle className="w-4 h-4 text-red-500" />, "Reddedilen Çekim Sayısı", totalRejected),
       createStatistic(<CheckCircle className="w-4 h-4 text-teal-500" />, "Manuel Onay Sayısı", totalManuelApproved),
       createStatistic(<XCircle className="w-4 h-4 text-red-500" />, "Manuel Ret Sayısı", totalManuelRejected),
-      createStatistic(<Bot className="w-4 h-4 text-purple-500" />, "Bot Onay Sayısı", botOnayli),
-      createStatistic(<Bot className="w-4 h-4 text-orange-500" />, "Bot Ret Sayısı", botRet),
+      createStatistic(<Bot className="w-4 h-4 text-purple-500" />, "Bot Approved Count", botApproved),
+      createStatistic(<Bot className="w-4 h-4 text-orange-500" />, "Bot Rejected Count", botRejected),
       createStatistic(
         <Percent className="w-4 h-4 text-green-500" />,
-        "Bot Onay Yüzdesi",
-        botOnayYuzdesi,
+        "Bot Approval Rate",
+        botApprovalRate,
         (v) => `${v.toFixed(1)}%`,
       ),
       createStatistic(
@@ -277,9 +282,9 @@ export function DashboardForm() {
       totalManuelRejected,
       totalPaidAmount,
       approvalRate,
-      botOnayli,
-      botRet,
-      botOnayYuzdesi,
+      botApproved,
+      botRejected,
+      botApprovalRate,
     ],
   )
 

@@ -40,6 +40,10 @@ export async function POST(request: Request) {
         const totalManuelRejected = parseInt(globalStats.totalManuelRejected || '0');
         const totalPaidAmount = parseFloat(globalStats.totalPaidAmount || '0');
 
+        const botStats = await redis.hgetall(`user:bbe5c3c2-812d-4795-a87b-e01b859e13e4:statistics`);
+        const botApproved = parseInt(botStats.approved || '0');
+        const botRejected = parseInt(botStats.rejected || '0');
+
         const approvalRate = totalWithdrawals > 0 ? (totalApproved / totalWithdrawals) * 100 : 0;
 
         const rejectReasonKeys = await redis.keys('global:rejectReason:*');
@@ -54,7 +58,6 @@ export async function POST(request: Request) {
             };
         }
 
-        // En hızlı personel listeleri için tüm personellerin hashlerini al
         const userKeys = await redis.keys('user:*:statistics');
         const fastestApprovers = [];
         const fastestRejecters = [];
@@ -100,6 +103,8 @@ export async function POST(request: Request) {
                 fastestApprovers,
                 fastestRejecters,
                 rejectReasonsStats,
+                botApproved,
+                botRejected,
             }
         }, { status: 200 });
 
