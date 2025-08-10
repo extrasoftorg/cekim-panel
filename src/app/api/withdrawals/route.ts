@@ -34,7 +34,7 @@ const autoEvaluationWithdrawalSchema = z.object({
   evaluationFactors: z.array(z.object({
     id: z.string(),
     name: z.string(),
-    description: z.string().optional(),
+    description: z.string().nullable().optional(),
     factor: z.string(),
     type: z.enum(['rejection', 'manual_review']),
     createdAt: z.string(),
