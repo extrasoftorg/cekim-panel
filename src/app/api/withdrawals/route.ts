@@ -40,10 +40,6 @@ const autoEvaluationWithdrawalSchema = z.object({
     createdAt: z.string(),
     updatedAt: z.string(),
   })),
-  actions: z.array(z.object({
-    type: z.string(),
-    payload: z.any(),
-  })).optional(),
   metadata: z.record(z.any()).optional(),
 });
 
@@ -102,6 +98,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log('Request body:', JSON.stringify(body, null, 2));
     
     let isAutoEvaluationRequest = false;
     let validatedData: any;
@@ -109,9 +106,15 @@ export async function POST(request: Request) {
     try {
       validatedData = autoEvaluationWithdrawalSchema.parse(body);
       isAutoEvaluationRequest = true;
-    } catch {
-      validatedData = withdrawalSchema.parse(body);
-      isAutoEvaluationRequest = false;
+    } catch (autoEvalError) {
+      console.log('Auto evaluation validation error:', autoEvalError);
+      try {
+        validatedData = withdrawalSchema.parse(body);
+        isAutoEvaluationRequest = false;
+      } catch (manualError) {
+        console.log('Validation error:', manualError);
+        return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
+      }
     }
 
     if (isAutoEvaluationRequest) {
