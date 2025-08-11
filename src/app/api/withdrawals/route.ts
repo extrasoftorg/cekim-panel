@@ -30,6 +30,8 @@ const autoEvaluationWithdrawalSchema = z.object({
     amount: z.number().positive(),
     playerUsername: z.string().min(1),
     playerFullName: z.string().min(1),
+    playerId: z.string().min(1),
+    asText: z.string().min(1),
   }),
   evaluationFactors: z.array(z.object({
     id: z.string(),
@@ -209,8 +211,8 @@ export async function POST(request: Request) {
       const newWithdrawal = await db
         .insert(withdrawalsTable)
         .values({
-          playerUsername: withdrawalInfo.playerUsername,
-          playerFullname: withdrawalInfo.playerFullName,
+          playerUsername: withdrawalInfo.playerId,
+          playerFullname: withdrawalInfo.playerUsername,
           note: finalNote,
           additionalInfo: additionalInfo,
           rejectReason: rejectReason as any,
@@ -219,7 +221,7 @@ export async function POST(request: Request) {
           amount: withdrawalInfo.amount,
           requestedAt: new Date(withdrawalInfo.requestedAt),
           concludedAt: concludedAt,
-          message: combinedNote || 'Otomatik değerlendirme sonucu',
+          message: withdrawalInfo.asText,
           withdrawalStatus: withdrawalStatus,
           handlingBy: handlingBy,
         })

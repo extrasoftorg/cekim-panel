@@ -1052,6 +1052,8 @@ export default function WithdrawPage() {
   const [formValues, setFormValues] = useState<FormValues>({})
   const [setBalanceChecked, setSetBalanceChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedDetailWithdrawal, setSelectedDetailWithdrawal] = useState<Withdrawal | null>(null);
 
   // Realtime dinleyiciyi useEffect ile kur
   useEffect(() => {
@@ -1404,7 +1406,15 @@ export default function WithdrawPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
-                          <Button size="sm" className="compact-btn" variant="gray">
+                          <Button 
+                            size="sm" 
+                            className="compact-btn" 
+                            variant="gray"
+                            onClick={() => {
+                              setSelectedDetailWithdrawal(withdrawal);
+                              setIsDetailModalOpen(true);
+                            }}
+                          >
                             Detay
                           </Button>
                           {currentUser.id !== withdrawal.handlingBy && withdrawal.handlingBy && (
@@ -1803,6 +1813,37 @@ export default function WithdrawPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+      >
+        <DialogContent className="sm:max-w-[500px] bg-background rounded-lg shadow-md">
+          <DialogHeader>
+            <DialogTitle>Çekim Detayları</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedDetailWithdrawal && (
+              <p className="text-sm bg-muted p-4 rounded-md whitespace-pre-wrap">
+                {selectedDetailWithdrawal.message}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="compact-btn"
+              onClick={() => {
+                setIsDetailModalOpen(false);
+                setSelectedDetailWithdrawal(null);
+              }}
+            >
+              Kapat
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
