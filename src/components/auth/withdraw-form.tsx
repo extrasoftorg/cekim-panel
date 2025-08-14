@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from 'lucide-react';
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { Input } from "@/components/ui/input";
 import LoadingSpinner from '@/components/loading-spinner';
 import {
@@ -1085,6 +1085,20 @@ export default function WithdrawPage() {
       }
     );
 
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'withdrawals',
+        filter: `handling_by=eq.${currentUser.id}`,
+      },
+      (payload) => {
+        console.log('UPDATE Dinleyici tetiklendi:', payload);
+        queryClient.invalidateQueries({ queryKey: ["pendingWithdrawals"] });
+      }
+    );
+
     channel.subscribe((status) => {
       console.log("Supabase kanal durumu:", status);
     });
@@ -1319,7 +1333,7 @@ export default function WithdrawPage() {
                 </TableRow>
               ) : (
                 sortedWithdrawals.map((withdrawal: Withdrawal) => {
-                  const requestedAt = new Date(withdrawal.requestedAt)
+                  const requestedAt = parseISO(withdrawal.requestedAt)
                   const requestedAtStr = format(requestedAt, 'dd-MM-yy HH:mm:ss');
                   const [requestedDate, requestedTime] = requestedAtStr.split(' ')
 
