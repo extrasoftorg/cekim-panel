@@ -150,10 +150,39 @@ export async function POST(request: Request) {
       let concludedAt: Date | null = null;
       let rejectReason: string | null = null;
 
+      const hasManualReviewPlayer = evaluationFactors.some((f: any) => f.factor === 'manual_review_player');
+      
       if (evaluationFactors.length === 0) {
         withdrawalStatus = 'approved';
         handlingBy = BOT_USER_ID;
         concludedAt = new Date();
+      } else if (hasManualReviewPlayer) {
+        withdrawalStatus = 'pending';
+        
+        const listLength = await redis.llen('active_personnel');
+        
+        if (listLength > 0) {
+          const personnelList = await redis.lrange('active_personnel', 0, -1);
+          
+          for (let i = 0; i < personnelList.length; i++) {
+            const personnelId = personnelList[i];
+            const user = await db
+              .select({ id: usersTable.id, role: usersTable.role, activityStatus: usersTable.activityStatus })
+              .from(usersTable)
+              .where(eq(usersTable.id, personnelId))
+              .limit(1)
+              .then(res => res[0]);
+
+            if (user && user.role.toLowerCase() === 'cekimpersoneli' && user.activityStatus === 'online') {
+              handlingBy = personnelId;
+              
+              await redis.lrem('active_personnel', 1, personnelId);
+              await redis.rpush('active_personnel', personnelId);
+              await redis.set('last_assigned_personnel', personnelId);
+              break;
+            }
+          }
+        }
       } else if (hasRejectionFactor) {
         withdrawalStatus = 'rejected';
         handlingBy = BOT_USER_ID;
@@ -212,6 +241,10 @@ export async function POST(request: Request) {
         processedAt: new Date().toISOString(),
         source: 'auto_evaluation'
       };
+      
+      const requestedAtDate = withdrawalInfo.requestedAt.endsWith('Z') 
+        ? new Date(withdrawalInfo.requestedAt.replace('Z', ''))
+        : new Date(withdrawalInfo.requestedAt);
 
       const newWithdrawal = await db
         .insert(withdrawalsTable)
@@ -224,7 +257,7 @@ export async function POST(request: Request) {
           transactionId: withdrawalInfo.id,
           method: withdrawalInfo.paymentMethod,
           amount: withdrawalInfo.amount,
-          requestedAt: new Date(withdrawalInfo.requestedAt),
+          requestedAt: requestedAtDate,
           concludedAt: concludedAt,
           message: withdrawalInfo.asText,
           withdrawalStatus: withdrawalStatus,
@@ -357,6 +390,10 @@ export async function POST(request: Request) {
       console.log('Aktif personel listesi boş, talep boşa atanıyor.');
     }
 
+    const requestedAtDate = validatedData.requestedAt.endsWith('Z') 
+      ? new Date(validatedData.requestedAt.replace('Z', ''))
+      : new Date(validatedData.requestedAt);
+    
     const newWithdrawal = await db
       .insert(withdrawalsTable)
       .values({
@@ -366,7 +403,7 @@ export async function POST(request: Request) {
         transactionId: validatedData.transactionId,
         method: validatedData.method,
         amount: validatedData.amount,
-        requestedAt: new Date(validatedData.requestedAt),
+        requestedAt: requestedAtDate,
         message: validatedData.message,
         withdrawalStatus: 'pending',
         handlingBy: assignedPersonnelId,
