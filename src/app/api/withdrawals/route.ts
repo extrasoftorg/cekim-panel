@@ -242,10 +242,6 @@ export async function POST(request: Request) {
         source: 'auto_evaluation'
       };
       
-      const requestedAtDate = withdrawalInfo.requestedAt.endsWith('Z') 
-        ? new Date(withdrawalInfo.requestedAt.replace('Z', ''))
-        : new Date(withdrawalInfo.requestedAt);
-
       const newWithdrawal = await db
         .insert(withdrawalsTable)
         .values({
@@ -257,7 +253,7 @@ export async function POST(request: Request) {
           transactionId: withdrawalInfo.id,
           method: withdrawalInfo.paymentMethod,
           amount: withdrawalInfo.amount,
-          requestedAt: requestedAtDate,
+          requestedAt: withdrawalInfo.requestedAt,
           concludedAt: concludedAt,
           message: withdrawalInfo.asText,
           withdrawalStatus: withdrawalStatus,
@@ -390,10 +386,6 @@ export async function POST(request: Request) {
       console.log('Aktif personel listesi boş, talep boşa atanıyor.');
     }
 
-    const requestedAtDate = validatedData.requestedAt.endsWith('Z') 
-      ? new Date(validatedData.requestedAt.replace('Z', ''))
-      : new Date(validatedData.requestedAt);
-    
     const newWithdrawal = await db
       .insert(withdrawalsTable)
       .values({
@@ -403,7 +395,7 @@ export async function POST(request: Request) {
         transactionId: validatedData.transactionId,
         method: validatedData.method,
         amount: validatedData.amount,
-        requestedAt: requestedAtDate,
+        requestedAt: validatedData.requestedAt,
         message: validatedData.message,
         withdrawalStatus: 'pending',
         handlingBy: assignedPersonnelId,
