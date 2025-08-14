@@ -84,6 +84,8 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'unmet_casino_wagering': 'Casino çevrim şartı eksik. Gerekli: {requiredWager} TL, Tamamlanan: {wager} TL, Kalan: {remaining} TL',
   'unmet_bonus_sports_wagering': 'Bonus spor çevrim şartı eksik. Gerekli: {requiredWager} TL, Tamamlanan: {settledBetWager} TL, Kalan: {remaining} TL',
   'unmet_bonus_casino_wagering': 'Bonus casino çevrim şartı eksik. Gerekli: {requiredWager} TL, Tamamlanan: {wager} TL, Kalan: {remaining} TL',
+  'unmet_post_deposit_balance_sports_wagering': 'Spor çevrimi 1.5 katının altında.',
+  'unmet_post_deposit_balance_casino_wagering': 'Casino çevrimi 1.5 katının altında.',
   'has_active_sport_bets': 'Aktif spor bahsi mevcut.',
   'invalid_player_identity': 'TC Kimlik numarası hatalı.',
   'invalid_amount': 'Geçersiz çekim tutarı. Küsüratlı veya minimum çekim tutarının altında talep.',
@@ -95,6 +97,8 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'daily_withdrawal_limit_exceeded': 'Günlük kesili üye.',
   'requires_full_withdrawal': 'Tüm bakiye talep verebilirsiniz.',
   'payment_method_disabled': 'Ödeme yöntemi devre dışı. Farklı bir yöntem deneyiniz.',
+  'casino_increasing_winning_ratio_exceeded': 'Casino oyunlarında alınan betler sonrası yansıyan kazanç, bet miktarının 2 katından az ve tüm bet işlemlerinin %50si veya daha fazlasını oluşturuyor.',
+  'first_withdrawal': 'İLK ÇEKİM, manuel inceleme gerekmektedir.',
 };
 
 export function mapEvaluationFactorToRejectReason(factor: EvaluationFactor): string | null {

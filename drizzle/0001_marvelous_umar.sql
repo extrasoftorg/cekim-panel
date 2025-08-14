@@ -1,1 +1,0 @@
-ALTER TABLE "withdrawals" DROP COLUMN "handler_username";
