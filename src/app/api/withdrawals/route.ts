@@ -30,7 +30,7 @@ const autoEvaluationWithdrawalSchema = z.object({
     amount: z.number().positive(),
     playerUsername: z.string().min(1),
     playerFullName: z.string().min(1),
-    playerId: z.string().min(1),
+    playerId: z.number().int(),
     asText: z.string().min(1),
   }),
   evaluationFactors: z.array(z.object({
