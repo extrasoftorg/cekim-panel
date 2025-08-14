@@ -6,6 +6,7 @@ import { db } from '@/db/index';
 import { withdrawalsTable, usersTable } from '@/db/schema';
 import { eq, or, desc, sql } from 'drizzle-orm';
 import redis from '@/db/redis';
+import { subHours } from 'date-fns';
 import { 
   findFirstAutoEvaluationRejectReason,
   generateAutoEvaluationFactorsCombinedNote 
@@ -253,7 +254,7 @@ export async function POST(request: Request) {
           transactionId: withdrawalInfo.id,
           method: withdrawalInfo.paymentMethod,
           amount: withdrawalInfo.amount,
-          requestedAt: new Date(withdrawalInfo.requestedAt),
+          requestedAt: subHours(new Date(withdrawalInfo.requestedAt), 3),
           concludedAt: concludedAt,
           message: withdrawalInfo.asText,
           withdrawalStatus: withdrawalStatus,
@@ -395,7 +396,7 @@ export async function POST(request: Request) {
         transactionId: validatedData.transactionId,
         method: validatedData.method,
         amount: validatedData.amount,
-        requestedAt: new Date(validatedData.requestedAt),
+        requestedAt: subHours(new Date(validatedData.requestedAt), 3),
         message: validatedData.message,
         withdrawalStatus: 'pending',
         handlingBy: assignedPersonnelId,
