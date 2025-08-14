@@ -100,7 +100,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('Request body:', JSON.stringify(body, null, 2));
+    console.log('=== REQUEST BODY ===');
+    console.log(JSON.stringify(body, null, 2));
     
     let isAutoEvaluationRequest = false;
     let validatedData: any;
@@ -108,13 +109,17 @@ export async function POST(request: Request) {
     try {
       validatedData = autoEvaluationWithdrawalSchema.parse(body);
       isAutoEvaluationRequest = true;
+      console.log('✅ Auto evaluation request validated');
     } catch (autoEvalError) {
-      console.log('Auto evaluation validation error:', autoEvalError);
+      console.log('❌ Auto evaluation validation failed:');
+      console.log(autoEvalError);
       try {
         validatedData = withdrawalSchema.parse(body);
         isAutoEvaluationRequest = false;
+        console.log('✅ Manual withdrawal request validated');
       } catch (manualError) {
-        console.log('Validation error:', manualError);
+        console.log('❌ Manual validation failed:');
+        console.log(manualError);
         return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
       }
     }
@@ -395,10 +400,12 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ message }, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      } catch (error) {
+      console.log('❌ POST endpoint error:');
+      console.log(error);
+      if (error instanceof z.ZodError) {
+        return NextResponse.json({ error: error.errors }, { status: 400 });
+      }
+      return NextResponse.json({ error: 'Bir hata oluştu' }, { status: 500 });
     }
-    return NextResponse.json({ error: 'Bir hata oluştu' }, { status: 500 });
-  }
 }
