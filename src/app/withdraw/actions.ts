@@ -245,7 +245,10 @@ export async function updateWithdrawalStatus(formData: FormData) {
           RejectedReason: ".",
         }];
 
-        console.log(JSON.stringify(rejectPayload));
+        console.log('=== REJECT DEBUG ===');
+        console.log('Reject Payload:', JSON.stringify(rejectPayload, null, 2));
+        console.log('Auth Token:', authToken ? 'Present' : 'Missing');
+        
         const fetchReject = await fetch(
           'https://backofficewebadmin.betconstruct.com/api/en/Client/RejectWithdrawalRequests',
           {
@@ -259,14 +262,27 @@ export async function updateWithdrawalStatus(formData: FormData) {
           }
         );
 
+        console.log('Reject Response Status:', fetchReject.status);
+        console.log('Reject Response Headers:', Object.fromEntries(fetchReject.headers.entries()));
+
         if (!fetchReject.ok) {
-          return { success: false, error: 'Betconstruct reddetme isteği başarısız oldu' };
+          const errorText = await fetchReject.text();
+          console.log('Reject Error Response Body:', errorText);
+          console.log('=== REJECT DEBUG END ===');
+          return { success: false, error: `Betconstruct reddetme isteği başarısız oldu: ${fetchReject.status} - ${errorText}` };
         }
 
         const rejectResult = await fetchReject.json();
+        console.log('Reject Success Response:', JSON.stringify(rejectResult, null, 2));
+        
         if (rejectResult.HasError) {
-          return { success: false, error: 'Betconstruct reddetme işlemi başarısız oldu' };
+          console.log('Reject HasError:', rejectResult.HasError);
+          console.log('Reject Error Details:', rejectResult);
+          console.log('=== REJECT DEBUG END ===');
+          return { success: false, error: `Betconstruct reddetme işlemi başarısız oldu: ${rejectResult.ErrorMessage || 'Bilinmeyen hata'}` };
         }
+        
+        console.log('=== REJECT DEBUG END ===');
       }
 
        if (validatedData.setBalance && validatedData.customBalance !== undefined) {
