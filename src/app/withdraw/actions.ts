@@ -243,10 +243,9 @@ export async function updateWithdrawalStatus(formData: FormData) {
           ClientId: betcoWithdrawalDetails.ClientId,
           ClientNotes: ".",
           RejectedReason: ".",
-          IsChecked: false,
-          RejectedUsername: "cekim",
         }];
 
+        console.log(JSON.stringify(rejectPayload));
         const fetchReject = await fetch(
           'https://backofficewebadmin.betconstruct.com/api/en/Client/RejectWithdrawalRequests',
           {
