@@ -25,6 +25,11 @@ const updateUserSchema = z.object({
   role: z.enum(["admin", "cekimSorumlusu", "cekimPersoneli", "spectator"], { message: "Geçersiz rol" }),
 });
 
+const updatePasswordSchema = z.object({
+  id: z.string().uuid({ message: "Geçersiz kullanıcı ID" }),
+  password: z.string().min(6, { message: "Şifre en az 6 karakter olmalı" }),
+});
+
 type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
 const deleteUserSchema = z.object({
@@ -290,5 +295,58 @@ export async function deleteUser(formData: FormData) {
       return { success: false, message };
     }
     return { success: false, message: "Bilinmeyen bir hata oluştu, lütfen tekrar deneyin" };
+  }
+}
+
+export async function updatePassword(formData: FormData) {
+  try {
+    const permissionCheck = await checkUserPermissions();
+    if (!permissionCheck.success) {
+      return permissionCheck;
+    }
+
+    const rawData = {
+      id: formData.get("id")?.toString(),
+      password: formData.get("password")?.toString(),
+    };
+
+    const validatedData = updatePasswordSchema.parse(rawData);
+
+    const userExists = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.id, validatedData.id))
+      .limit(1)
+      .then((res) => res[0] as { id: string } | undefined);
+
+    if (!userExists) {
+      return { success: false, message: "Kullanıcı bulunamadı" };
+    }
+
+    // Yeni şifreyi hashle
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(validatedData.password, salt);
+
+    await db
+      .update(usersTable)
+      .set({
+        hashedPassword,
+        updatedAt: new Date(),
+      })
+      .where(eq(usersTable.id, validatedData.id));
+
+    revalidatePath("/users");
+
+    return { success: true, message: "Şifre başarıyla güncellendi" };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, message: error.errors[0].message };
+    }
+    console.error("Şifre güncelleme Hatası:", error);
+    if (error instanceof Error) {
+      console.error("Hata Mesajı:", error.message);
+      console.error("Hata Stack:", error.stack);
+    }
+    return { success: false, message: "Bir hata oluştu, lütfen tekrar deneyin" };
   }
 }

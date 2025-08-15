@@ -23,7 +23,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { register, updateUser, deleteUser } from "@/app/users/actions";
+import { register, updateUser, deleteUser, updatePassword } from "@/app/users/actions";
 
 const translateRole = (role: string): string => {
     switch (role.toLowerCase()) {
@@ -205,6 +205,9 @@ export default function UsersPage() {
     const [originalUser, setOriginalUser] = useState<User | null>(null); // Orijinal kullanıcıyı saklamak için
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [isEditingRole, setIsEditingRole] = useState(false);
+    const [isEditingPassword, setIsEditingPassword] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const [showNewPassword, setShowNewPassword] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const {
@@ -277,6 +280,9 @@ export default function UsersPage() {
         setOriginalUser(user); 
         setIsEditingUsername(false);
         setIsEditingRole(false);
+        setIsEditingPassword(false);
+        setNewPassword("");
+        setShowNewPassword(false);
         setIsDeleteModalOpen(false);
     };
 
@@ -301,8 +307,37 @@ export default function UsersPage() {
         setIsEditingRole(true);
     };
 
+    const handlePasswordEdit = () => {
+        setIsEditingPassword(true);
+        setNewPassword("");
+    };
+
     const handleSave = async () => {
         if (!selectedUser) return;
+
+        if (isEditingPassword) {
+            if (!newPassword || newPassword.length < 6) {
+                toast.error("Hata", { description: "Şifre en az 6 karakter olmalı" });
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("id", selectedUser.id);
+            formData.append("password", newPassword);
+
+            const result = await updatePassword(formData);
+
+            if (result.success) {
+                toast.success("Başarılı", { description: result.message });
+                setIsEditingPassword(false);
+                setNewPassword("");
+                setShowNewPassword(false);
+                queryClient.invalidateQueries({ queryKey: ["users"] });
+            } else {
+                toast.error("Hata", { description: result.message || "Şifre güncellenemedi" });
+            }
+            return;
+        }
 
         const formData = new FormData();
         formData.append("id", selectedUser.id);
@@ -328,6 +363,9 @@ export default function UsersPage() {
         }
         setIsEditingUsername(false);
         setIsEditingRole(false);
+        setIsEditingPassword(false);
+        setNewPassword("");
+        setShowNewPassword(false);
     };
 
     const handleDeleteConfirm = async () => {
@@ -569,6 +607,50 @@ export default function UsersPage() {
                                     </div>
                                 ) : (
                                     <Button size="sm" variant="outline" onClick={handleRoleEdit}>
+                                        Düzenle
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label className="mb-1.5">Şifre</Label>
+                                    {isEditingPassword ? (
+                                        <div className="relative">
+                                            <Input
+                                                type={showNewPassword ? "text" : "password"}
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                placeholder="Yeni şifre girin"
+                                                className="pr-10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-primary"
+                                                aria-label={showNewPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                                            >
+                                                {showNewPassword ? (
+                                                    <EyeOff className="h-5 w-5" />
+                                                ) : (
+                                                    <Eye className="h-5 w-5" />
+                                                )}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <p>••••••••</p>
+                                    )}
+                                </div>
+                                {isEditingPassword ? (
+                                    <div className="flex gap-2">
+                                        <Button size="sm" onClick={handleSave}>
+                                            <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={handleCancel}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <Button size="sm" variant="outline" onClick={handlePasswordEdit}>
                                         Düzenle
                                     </Button>
                                 )}

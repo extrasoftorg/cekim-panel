@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { FiLogOut } from 'react-icons/fi';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -106,6 +107,28 @@ export default function ActivityDropdown() {
     mutation.mutate(status);
   };
 
+    const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        window.location.href = '/login';
+      } else {
+        console.error('Logout error:', response.statusText);
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      window.location.href = '/login';
+    }
+  };
+
   if (isLoading) {
     return <div>Yükleniyor...</div>;
   }
@@ -116,7 +139,7 @@ export default function ActivityDropdown() {
         <span className="font-medium leading-none">{`${data.username} - ${translateRole(data.role)}`}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2 mr-5">
+            <Button variant="outline" className="flex items-center gap-2 mr-1">
               <span className={`w-3 h-3 rounded-full ${getStatusColor(data.status)}`} />
               <span>{data.status === "online" ? "Çevrimiçi" : data.status === "away" ? "Molada" : "Çevrimdışı"}</span>
             </Button>
@@ -142,6 +165,15 @@ export default function ActivityDropdown() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleLogout}
+          className="flex items-center mr-2 gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
+        >
+          <FiLogOut className="w-4 h-4" />
+          Çıkış Yap
+        </Button>
       </div>
     </div>
   );
