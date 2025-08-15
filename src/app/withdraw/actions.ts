@@ -238,10 +238,11 @@ export async function updateWithdrawalStatus(formData: FormData) {
         }
       } else {
         const rejectPayload = [{
-          Id: betcoWithdrawalDetails.Id,
-          ClientId: betcoWithdrawalDetails.ClientId,
+          ...betcoWithdrawalDetails,
+          RejectReason: ".",
+          IsChecked: false,
           ClientNotes: ".",
-          RejectedReason: ".",
+          RejectUsername: ".",
         }];
 
         console.log('=== REJECT DEBUG ===');
@@ -249,7 +250,7 @@ export async function updateWithdrawalStatus(formData: FormData) {
         console.log('Auth Token:', authToken ? 'Present' : 'Missing');
         
         const fetchReject = await fetch(
-          'https://backofficewebadmin.betconstruct.com/api/en/Client/RejectWithdrawalRequests',
+          'https://backofficewebadmin.betconstruct.com/api/en/Client/CancelClientRequests',
           {
             method: 'POST',
             headers: {
