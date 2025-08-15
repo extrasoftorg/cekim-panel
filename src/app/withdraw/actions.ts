@@ -239,6 +239,9 @@ export async function updateWithdrawalStatus(formData: FormData) {
       } else {
         const rejectPayload = [{
           ...betcoWithdrawalDetails,
+          Id: betcoWithdrawalDetails.Id,
+          ClientId: betcoWithdrawalDetails.ClientId,
+          ClientNotes: ".",
           RejectedReason: ".",
           IsChecked: false,
           RejectedUsername: "cekim",
@@ -259,6 +262,11 @@ export async function updateWithdrawalStatus(formData: FormData) {
 
         if (!fetchReject.ok) {
           return { success: false, error: 'Betconstruct reddetme isteği başarısız oldu' };
+        }
+
+        const rejectResult = await fetchReject.json();
+        if (rejectResult.HasError) {
+          return { success: false, error: 'Betconstruct reddetme işlemi başarısız oldu' };
         }
       }
 

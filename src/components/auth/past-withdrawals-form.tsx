@@ -85,7 +85,7 @@ export default function PastWithdrawalsPage() {
   const [filteredWithdrawals, setFilteredWithdrawals] = useState<Withdrawal[]>([])
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [rowsPerPage] = useState(5)
+  const [rowsPerPage] = useState(20)
   const [isFiltered, setIsFiltered] = useState(false)
 
   const [isLoadingTransfers, setIsLoadingTransfers] = useState<{ [key: number]: boolean }>({})
@@ -188,7 +188,7 @@ export default function PastWithdrawalsPage() {
     : filteredWithdrawals.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
 
   const getPageNumbers = () => {
-    const maxPagesToShow = 5
+    const maxPagesToShow = 20
     const pages = []
 
     if (totalPages <= maxPagesToShow) {
