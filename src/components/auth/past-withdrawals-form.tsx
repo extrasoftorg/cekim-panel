@@ -284,22 +284,21 @@ export default function PastWithdrawalsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="yontem">Yöntem</SelectItem>
-                <SelectItem value="HizliKripto">HizliKripto</SelectItem>
-                <SelectItem value="Aninda_Kripto">Aninda_Kripto</SelectItem>
-                <SelectItem value="TrendHavale">TrendHavale</SelectItem>
-                <SelectItem value="NakitAktarHavale">NakitAktarHavale</SelectItem>
-                <SelectItem value="KralPaybanktransferNew">KralPaybanktransferNew</SelectItem>
-                <SelectItem value="CPapara1">CPapara1</SelectItem>
                 <SelectItem value="TurboHavale">TurboHavale</SelectItem>
-                <SelectItem value="Hemen">Hemen</SelectItem>
-                <SelectItem value="CPapara">CPapara</SelectItem>
+                <SelectItem value="KolayPayPapara withdraw">KolayPayPapara withdraw</SelectItem>
+                <SelectItem value="HavaleM">HavaleM</SelectItem>
+                <SelectItem value="Aninda_Parola">Aninda_Parola</SelectItem>
+                <SelectItem value="BigPayPaybol">BigPayPaybol</SelectItem>
+                <SelectItem value="CepPay withdraw">CepPay withdraw</SelectItem>
+                <SelectItem value="KralPaybanktransferNew">KralPaybanktransferNew</SelectItem>
                 <SelectItem value="FlexPapara">FlexPapara</SelectItem>
-                <SelectItem value="Allpapara">Allpapara</SelectItem>
-                <SelectItem value="Bigpay">Bigpay</SelectItem>
-                <SelectItem value="Aninda_Paratim">Aninda_Paratim</SelectItem>
-                <SelectItem value="VipParola">VipParola</SelectItem>
-                <SelectItem value="MPayV3Payco">MPayV3Payco</SelectItem>
-                <SelectItem value="SeriPopy">SeriPopy</SelectItem>
+                <SelectItem value="HizliKripto">HizliKripto</SelectItem>
+                <SelectItem value="TrendHavale">TrendHavale</SelectItem>
+                <SelectItem value="CPapara">CPapara</SelectItem>
+                <SelectItem value="NakitAktarHavale">NakitAktarHavale</SelectItem>
+                <SelectItem value="Aninda_Kripto">Aninda_Kripto</SelectItem>
+                <SelectItem value="AnindaQR">AnindaQR</SelectItem>
+                <SelectItem value="Aninda_Mefete">Aninda_Mefete</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -356,8 +355,13 @@ export default function PastWithdrawalsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="yetkili">Yetkili</SelectItem>
-                <SelectItem value="testuser">testuser</SelectItem>
-                <SelectItem value="testuser1">testuser1</SelectItem>
+                <SelectItem value="Çekim Botu">Çekim Botu</SelectItem>
+                <SelectItem value="ORHUN">ORHUN</SelectItem>
+                <SelectItem value="TALAT">TALAT</SelectItem>
+                <SelectItem value="SARP">SARP</SelectItem>
+                <SelectItem value="SABRİ">SABRİ</SelectItem>
+                <SelectItem value="METİN">METİN</SelectItem>
+                <SelectItem value="CÜNEYT">CÜNEYT</SelectItem>
               </SelectContent>
             </Select>
           </div>
