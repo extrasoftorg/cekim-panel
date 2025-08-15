@@ -238,7 +238,6 @@ export async function updateWithdrawalStatus(formData: FormData) {
         }
       } else {
         const rejectPayload = [{
-          ...betcoWithdrawalDetails,
           Id: betcoWithdrawalDetails.Id,
           ClientId: betcoWithdrawalDetails.ClientId,
           ClientNotes: ".",
