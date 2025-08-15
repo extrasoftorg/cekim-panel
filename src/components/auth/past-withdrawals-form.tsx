@@ -165,7 +165,6 @@ export default function PastWithdrawalsPage() {
         ? format(new Date(withdrawal.concludedAt), "dd-MM-yy HH:mm:ss")
         : "Bilinmiyor",
       "Kapanma Süresi": calculateDuration(withdrawal.requestedAt, withdrawal.concludedAt),
-      Çevrim: "-",
       Yetkili: withdrawal.handlerUsername || "Bilinmiyor",
       Not: withdrawal.note,
       Durum: withdrawal.withdrawalStatus === "approved" ? "Onaylandı" : "Reddedildi",
@@ -422,7 +421,6 @@ export default function PastWithdrawalsPage() {
               <TableHead className="table-head">Talep Tarihi</TableHead>
               <TableHead className="table-head">Kapanma Tarihi</TableHead>
               <TableHead className="table-head">Kapanma Süresi</TableHead>
-              <TableHead className="table-head">Çevrim</TableHead>
               <TableHead className="table-head">Yetkili</TableHead>
               <TableHead className="table-head">Not</TableHead>
               <TableHead className="table-head">Durum</TableHead>
@@ -461,7 +459,6 @@ export default function PastWithdrawalsPage() {
                     <TableCell className="table-cell">
                       {calculateDuration(withdrawal.requestedAt, withdrawal.concludedAt)}
                     </TableCell>
-                    <TableCell className="table-cell">-</TableCell>
                     <TableCell className="table-cell">
                       {withdrawal.hasTransfers ? (
                         <DropdownMenu
