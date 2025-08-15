@@ -28,7 +28,8 @@ export type EvaluationFactor =
   | 'early_withdrawal_attempt'
   | 'daily_withdrawal_limit_exceeded'
   | 'requires_full_withdrawal'
-  | 'payment_method_disabled';
+  | 'payment_method_disabled'
+  | 'error_occurred';
 
 
 export const EvaluationToRejectReasonMap: Record<string, string> = {
@@ -60,7 +61,8 @@ export const EvaluationToRejectReasonMap: Record<string, string> = {
   'exceed_bonus_balance_threshold': 'anapara_cevrim',
   'no_activity': 'ozel_oyun_kontrol',
   'withdrawal_amount_less_than_deposit': 'kurma_bahis',
-  'crypto_withdrawal': 'yontem_sorunu'
+  'crypto_withdrawal': 'yontem_sorunu',
+  
 };
 
 
@@ -98,6 +100,7 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'requires_full_withdrawal': 'Tüm bakiye talep verebilirsiniz.',
   'payment_method_disabled': 'Ödeme yöntemi devre dışı. Farklı bir yöntem deneyiniz.',
   'casino_increasing_winning_ratio_exceeded': 'Casino oyunlarında alınan betler sonrası yansıyan kazanç, bet miktarının 2 katından az ve tüm bet işlemlerinin %50si veya daha fazlasını oluşturuyor.',
+  'error_occurred': 'Hata oluştu, manuel inceleyiniz.',
   'first_withdrawal': 'İLK ÇEKİM, manuel inceleme gerekmektedir.',
 };
 

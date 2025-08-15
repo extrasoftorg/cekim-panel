@@ -152,12 +152,13 @@ export async function POST(request: Request) {
       let rejectReason: string | null = null;
 
       const hasManualReviewPlayer = evaluationFactors.some((f: any) => f.factor === 'manual_review_player');
+      const hasErrorOccurred = evaluationFactors.some((f: any) => f.factor === 'error_occurred');
       
       if (evaluationFactors.length === 0) {
         withdrawalStatus = 'approved';
         handlingBy = BOT_USER_ID;
         concludedAt = new Date();
-      } else if (hasManualReviewPlayer) {
+      } else if (hasManualReviewPlayer || hasErrorOccurred) {
         withdrawalStatus = 'pending';
         
         const listLength = await redis.llen('active_personnel');
