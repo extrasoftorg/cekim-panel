@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 
 interface Withdrawal {
   id: number
+  transactionId: string
   playerUsername: string
   playerFullname: string
   method: string
@@ -447,7 +448,7 @@ export default function PastWithdrawalsPage() {
 
                 return (
                   <TableRow key={withdrawal.id}>
-                    <TableCell className="table-cell">{withdrawal.playerUsername}</TableCell>
+                    <TableCell className="table-cell">{withdrawal.transactionId}</TableCell>
                     <TableCell className="table-cell">{withdrawal.playerFullname}</TableCell>
                     <TableCell className="table-cell">{withdrawal.method}</TableCell>
                     <TableCell className="table-cell">{withdrawal.amount} TL</TableCell>
