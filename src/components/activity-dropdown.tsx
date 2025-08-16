@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { FiLogOut } from 'react-icons/fi';
+import LoadingSpinner from '@/components/loading-spinner';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -130,7 +131,7 @@ export default function ActivityDropdown() {
   };
 
   if (isLoading) {
-    return <div>Yükleniyor...</div>;
+    return <LoadingSpinner message="Kullanıcı bilgileri yükleniyor..." size="sm" />;
   }
 
   return (

@@ -182,23 +182,29 @@ export function generateFactorNote(factor: EvaluationFactor, metadata?: Record<s
       break;
 
     case 'early_withdrawal_attempt':
-      if (metadata.remainingTime && metadata.canWithdrawAt) {
-        const remainingHours = Math.floor(metadata.remainingTime / 3600);
-        const remainingMinutes = Math.floor((metadata.remainingTime % 3600) / 60);
-        const formattedRemainingTime = `${remainingHours}s ${remainingMinutes}dk`;
+      if (metadata.earlyWithdrawalAttempt) {
+        const { remainingTime, canWithdrawAt } = metadata.earlyWithdrawalAttempt;
         
-        const canWithdrawDate = new Date(metadata.canWithdrawAt);
-        const formattedCanWithdrawAt = canWithdrawDate.toLocaleString('tr-TR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        
-        note = note
-          .replace('{remainingTime}', formattedRemainingTime)
-          .replace('{canWithdrawAt}', formattedCanWithdrawAt);
+        if (remainingTime && canWithdrawAt) {
+          const timeInSeconds = Math.floor(remainingTime / 1000000000);
+          
+          const remainingHours = Math.floor(timeInSeconds / 3600);
+          const remainingMinutes = Math.floor((timeInSeconds % 3600) / 60);
+          const formattedRemainingTime = `${remainingHours}s ${remainingMinutes}dk`;
+          
+          const canWithdrawDate = new Date(canWithdrawAt);
+          const formattedCanWithdrawAt = canWithdrawDate.toLocaleString('tr-TR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          note = note
+            .replace('{remainingTime}', formattedRemainingTime)
+            .replace('{canWithdrawAt}', formattedCanWithdrawAt);
+        }
       }
       break;
 

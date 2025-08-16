@@ -6,6 +6,7 @@ import { useState, useMemo, type JSX, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import LoadingSpinner from "@/components/loading-spinner"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Users, CheckCircle, XCircle, Bot, Percent, Wallet, Clock } from "lucide-react"
@@ -292,7 +293,7 @@ export function DashboardForm() {
     setDateRange({ from: undefined, to: undefined })
   }
 
-  if (isLoading) return <div>Yükleniyor...</div>
+      if (isLoading) return <LoadingSpinner message="Dashboard verileri yükleniyor..." />
   if (error) return <div>Hata: {(error as Error).message}</div>
 
   return (

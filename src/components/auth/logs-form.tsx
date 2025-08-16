@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { FiSearch } from "react-icons/fi"
+import LoadingSpinner from "@/components/loading-spinner"
 
 interface Log {
     transactionId: Int16Array;
@@ -53,7 +54,7 @@ export default function LogsForm() {
     const [filterUsername, setFilterUsername] = useState<string>("")
     const [filterType, setFilterType] = useState<string>("all") 
 
-    if (isLoading) return <div>Yükleniyor...</div>
+    if (isLoading) return <LoadingSpinner message="Loglar yükleniyor..." />
     if (error) return <div>Hata: {(error as Error).message}</div>
 
     const filteredData = data?.success && data.data

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import LoadingSpinner from "@/components/loading-spinner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
 import { Calendar } from "@/components/ui/calendar"
@@ -247,12 +248,7 @@ export default function PastWithdrawalsPage() {
   if (!mounted) return null
 
   if (isLoading) {
-    return (
-      <div>
-        Yükleniyor...
-        <div className="text-sm text-muted-foreground mt-2 text-center">Geçmiş çekim talepleri yükleniyor...</div>
-      </div>
-    )
+    return <LoadingSpinner message="Geçmiş çekim talepleri yükleniyor..." />
   }
 
   if (error) {
@@ -486,7 +482,7 @@ export default function PastWithdrawalsPage() {
                             <div className="p-4">
                               <h4 className="font-medium mb-2">Transfer Geçmişi</h4>
                               {isLoadingTransfers[withdrawal.id] ? (
-                                <div className="text-center text-sm text-muted-foreground">Yükleniyor...</div>
+                                <LoadingSpinner message="Transfer geçmişi yükleniyor..." size="sm" />
                               ) : transferErrors[withdrawal.id] ? (
                                 <div className="text-center text-sm text-destructive">
                                   {transferErrors[withdrawal.id]}

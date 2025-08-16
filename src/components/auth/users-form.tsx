@@ -1,7 +1,8 @@
 "use client"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
+import LoadingSpinner from "@/components/loading-spinner";
 import { Plus, Eye, EyeOff, Edit, Trash2, Check, X } from "lucide-react"
 import {
     Dialog,
@@ -246,15 +247,7 @@ export default function UsersPage() {
     };
 
     if (currentUserLoading || usersLoading) {
-        return (
-            <div>
-                Yükleniyor...
-                <div className="text-sm text-gray-500 mt-2">
-                    {currentUserLoading && <div>Kullanıcı bilgileri yükleniyor...</div>}
-                    {usersLoading && <div>Personeller yükleniyor...</div>}
-                </div>
-            </div>
-        )
+        return <LoadingSpinner message="Personeller yükleniyor..." />
     }
 
     if (currentUserError) {

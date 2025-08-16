@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, PlayCircle, History, Sun, Moon, Users, FileText, ClipboardList, } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import LoadingSpinner from "@/components/loading-spinner"
 import { useTheme } from "next-themes"
 import ActivityDropdown from "@/components/activity-dropdown";
 import { useQuery } from "@tanstack/react-query";
@@ -69,12 +70,7 @@ export function Navbar() {
 
   if (currentUserLoading) {
     return (
-      <div>
-        Yükleniyor...
-        <div className="text-sm text-gray-500 mt-2">
-          {currentUserLoading && <div>Kullanıcı bilgileri yükleniyor...</div>}
-        </div>
-      </div>
+              <LoadingSpinner message="Yükleniyor..." size="sm" />
     )
   }
 
