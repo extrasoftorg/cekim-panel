@@ -209,22 +209,22 @@ export function generateFactorNote(factor: EvaluationFactor, metadata?: Record<s
       break;
 
     case 'exceed_player_activity_max_amount':
-      if (metadata.maxAmount !== undefined) {
-        note = note.replace('{maxAmount}', metadata.maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      if (metadata.exceedPlayerActivityMaxAmount?.maxAmount !== undefined) {
+        note = note.replace('{maxAmount}', metadata.exceedPlayerActivityMaxAmount.maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       }
       break;
 
     case 'under_player_activity_min_amount':
-      if (metadata.minAmount !== undefined) {
-        note = note.replace('{minAmount}', metadata.minAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      if (metadata.underPlayerActivityMinAmount?.minAmount !== undefined) {
+        note = note.replace('{minAmount}', metadata.underPlayerActivityMinAmount.minAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       }
       break;
 
     case 'total_withdrawal_limit_by_deposit_amount_exceeded':
-      if (metadata.totalLimit !== undefined && metadata.remainingLimit !== undefined) {
+      if (metadata.totalWithdrawalLimitByDepositAmountExceeded?.totalLimit !== undefined && metadata.totalWithdrawalLimitByDepositAmountExceeded?.remainingLimit !== undefined) {
         note = note
-          .replace('{totalLimit}', metadata.totalLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-          .replace('{remainingLimit}', metadata.remainingLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+          .replace('{totalLimit}', metadata.totalWithdrawalLimitByDepositAmountExceeded.totalLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+          .replace('{remainingLimit}', metadata.totalWithdrawalLimitByDepositAmountExceeded.remainingLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       }
       break;
 
