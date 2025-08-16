@@ -169,7 +169,7 @@ export default function ActivityDropdown() {
           variant="outline" 
           size="sm"
           onClick={handleLogout}
-          className="flex items-center mr-2 gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
+          className="flex items-center cursor-pointer mr-2 gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
         >
           <FiLogOut className="w-4 h-4" />
           Çıkış Yap

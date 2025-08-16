@@ -74,7 +74,7 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'suspicious_sport_exposure': 'Riskli spor bahisleri mevcut.',
   'high_balance_without_deposit': 'Yatırım yapılmadan önceki bakiye, belirlenen bakiye limitini aşıyor.',
   'excluded_from_bonus': '"Bonus Kullanamaz" kategorisinde olan kullanıcı fakat son aktivitesi bonustur.',
-  'ip_conflict': 'IP çakışması tespit edildi: {conflictInfo}',
+  'ip_conflict': 'IP çakışması tespit edildi',
   'has_safe_bets': 'Safe bahis alımı mevcut.', 
   'hidden_sport_bets': 'Bet saklama tespit edildi. Bahis ID\'leri: {betIds}', 
   'hidden_free_spin_winnings': '{id} ID\'li {product} oyunda, {date} {time} tarihinde, {amount} TL kazancı, geçmiş finansal işlemlere ait bir FreeSpin veya Spin\'den gelmektedir.',
@@ -91,11 +91,11 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'has_active_sport_bets': 'Aktif spor bahsi mevcut.',
   'invalid_player_identity': 'TC Kimlik numarası hatalı.',
   'invalid_amount': 'Geçersiz çekim tutarı. Küsüratlı veya minimum çekim tutarının altında talep.',
-  'exceed_player_activity_max_amount': 'Maksimum çekim limiti aşıldı.',
-  'under_player_activity_min_amount': 'Minimum çekim limiti altında.',
-  'total_withdrawal_limit_by_deposit_amount_exceeded': 'Yatırıma bağlı maximum çekim limiti aşıldı.',
+  'exceed_player_activity_max_amount': 'Maksimum çekim limiti aşıldı. Maksimum çekim tutarı: {maxAmount} TL',
+  'under_player_activity_min_amount': 'Minimum çekim limiti altında. Minimum çekim tutarı: {minAmount} TL',
+  'total_withdrawal_limit_by_deposit_amount_exceeded': 'Yatırıma bağlı maximum çekim limiti aşıldı. Toplam çekim limiti: {totalLimit} TL, Kalan çekim limiti: {remainingLimit} TL',
   'late_request': 'Yeni gün talep.',
-  'early_withdrawal_attempt': 'Son çekim talebinden sonra geçmesi gereken minimum süre dolmadı.',
+  'early_withdrawal_attempt': 'Son çekim tarihinden sonra çekim yapabileceği zaman: {canWithdrawAt}, Kalan süre: {remainingTime}',
   'daily_withdrawal_limit_exceeded': 'Günlük kesili üye.',
   'requires_full_withdrawal': 'Tüm bakiye talep verebilirsiniz.',
   'payment_method_disabled': 'Ödeme yöntemi devre dışı. Farklı bir yöntem deneyiniz.',
@@ -181,13 +181,44 @@ export function generateFactorNote(factor: EvaluationFactor, metadata?: Record<s
       }
       break;
 
-    case 'ip_conflict':
-      const ipConflict = metadata.ipConflict;
-      if (ipConflict && ipConflict.ips) {
-        const conflictInfo = ipConflict.ips.map((ipData: any) => 
-          `IP: ${ipData.ip}, Oyuncular: ${ipData.players.map((p: any) => p.username).join(', ')}`
-        ).join(' | ');
-        note = note.replace('{conflictInfo}', conflictInfo);
+    case 'early_withdrawal_attempt':
+      if (metadata.remainingTime && metadata.canWithdrawAt) {
+        const remainingHours = Math.floor(metadata.remainingTime / 3600);
+        const remainingMinutes = Math.floor((metadata.remainingTime % 3600) / 60);
+        const formattedRemainingTime = `${remainingHours}s ${remainingMinutes}dk`;
+        
+        const canWithdrawDate = new Date(metadata.canWithdrawAt);
+        const formattedCanWithdrawAt = canWithdrawDate.toLocaleString('tr-TR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        note = note
+          .replace('{remainingTime}', formattedRemainingTime)
+          .replace('{canWithdrawAt}', formattedCanWithdrawAt);
+      }
+      break;
+
+    case 'exceed_player_activity_max_amount':
+      if (metadata.maxAmount !== undefined) {
+        note = note.replace('{maxAmount}', metadata.maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      }
+      break;
+
+    case 'under_player_activity_min_amount':
+      if (metadata.minAmount !== undefined) {
+        note = note.replace('{minAmount}', metadata.minAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      }
+      break;
+
+    case 'total_withdrawal_limit_by_deposit_amount_exceeded':
+      if (metadata.totalLimit !== undefined && metadata.remainingLimit !== undefined) {
+        note = note
+          .replace('{totalLimit}', metadata.totalLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+          .replace('{remainingLimit}', metadata.remainingLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       }
       break;
 
