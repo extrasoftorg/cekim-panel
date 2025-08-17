@@ -90,9 +90,9 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'unmet_post_deposit_balance_casino_wagering': 'Casino çevrimi 1.5 katının altında.',
   'has_active_sport_bets': 'Aktif spor bahsi mevcut.',
   'invalid_player_identity': 'TC Kimlik numarası hatalı.',
-  'invalid_amount': 'Geçersiz çekim tutarı. Küsüratlı veya minimum çekim tutarının altında talep.',
-  'exceed_player_activity_max_amount': 'Maksimum çekim limiti aşıldı. Maksimum çekim tutarı: {maxAmount} TL',
-  'under_player_activity_min_amount': 'Minimum çekim limiti altında. Minimum çekim tutarı: {minAmount} TL',
+  'invalid_amount': 'Geçersiz çekim tutarı. 10 ve katları olacak şekilde ve minimum çekim tutarının üstünde talep verebilirsiniz.',
+  'exceed_player_activity_max_amount': 'Minimum {minAmount} TL, Maximum {maxAmount} TL çekim talebi oluşturabilirsiniz.',
+  'under_player_activity_min_amount': 'Minimum {minAmount} TL, Maximum {maxAmount} TL çekim talebi oluşturabilirsiniz.',
   'total_withdrawal_limit_by_deposit_amount_exceeded': 'Yatırıma bağlı maximum çekim limiti aşıldı. Toplam çekim limiti: {totalLimit} TL, Kalan çekim limiti: {remainingLimit} TL',
   'late_request': 'Yeni gün talep.',
   'early_withdrawal_attempt': 'Son çekim tarihinden sonra çekim yapabileceği zaman: {canWithdrawAt}, Kalan süre: {remainingTime}',
@@ -210,13 +210,31 @@ export function generateFactorNote(factor: EvaluationFactor, metadata?: Record<s
 
     case 'exceed_player_activity_max_amount':
       if (metadata.exceedPlayerActivityMaxAmount?.maxAmount !== undefined) {
-        note = note.replace('{maxAmount}', metadata.exceedPlayerActivityMaxAmount.maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        const maxAmount = metadata.exceedPlayerActivityMaxAmount.maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        if (metadata.exceedPlayerActivityMaxAmount?.minAmount !== undefined && metadata.exceedPlayerActivityMaxAmount?.minAmount !== null) {
+          const minAmount = metadata.exceedPlayerActivityMaxAmount.minAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          note = note
+            .replace('{minAmount}', minAmount)
+            .replace('{maxAmount}', maxAmount);
+        } else {
+          note = `Maximum ${maxAmount} TL çekim talebi oluşturabilirsiniz.`;
+        }
       }
       break;
 
     case 'under_player_activity_min_amount':
       if (metadata.underPlayerActivityMinAmount?.minAmount !== undefined) {
-        note = note.replace('{minAmount}', metadata.underPlayerActivityMinAmount.minAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        const minAmount = metadata.underPlayerActivityMinAmount.minAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        if (metadata.underPlayerActivityMinAmount?.maxAmount !== undefined && metadata.underPlayerActivityMinAmount?.maxAmount !== null) {
+          const maxAmount = metadata.underPlayerActivityMinAmount.maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          note = note
+            .replace('{minAmount}', minAmount)
+            .replace('{maxAmount}', maxAmount);
+        } else {
+          note = `Minimum ${minAmount} TL çekim talebi oluşturabilirsiniz.`;
+        }
       }
       break;
 
