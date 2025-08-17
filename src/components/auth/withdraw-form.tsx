@@ -1270,9 +1270,15 @@ export default function WithdrawPage() {
       if (a.handlingBy === currentUser.id && b.handlingBy !== currentUser.id) return -1
       if (a.handlingBy !== currentUser.id && b.handlingBy === currentUser.id) return 1
     }
+    
+    if (a.handlingBy === b.handlingBy) {
+      return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+    }
+    
     if (a.handlingBy === null && b.handlingBy !== null) return 1
     if (a.handlingBy !== null && b.handlingBy === null) return -1
-    return 0
+    
+    return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
   })
 
   const filteredOnlineUsers = onlineUsers.filter((user: User) => user.role !== "spectator")
