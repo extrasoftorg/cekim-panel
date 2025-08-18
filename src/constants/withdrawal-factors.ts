@@ -23,6 +23,8 @@ export type EvaluationFactor =
   | 'invalid_amount'
   | 'exceed_player_activity_max_amount'
   | 'under_player_activity_min_amount'
+  | 'exceed_max_withdrawal_amount'
+  | 'under_min_withdrawal_amount'
   | 'total_withdrawal_limit_by_deposit_amount_exceeded'
   | 'late_request'
   | 'early_withdrawal_attempt'
@@ -42,6 +44,8 @@ export const EvaluationToRejectReasonMap: Record<string, string> = {
   'invalid_amount': 'on_katlari',
   'exceed_player_activity_max_amount': 'bonus_sinir',
   'under_player_activity_min_amount': 'bonus_sinir',
+  'exceed_max_withdrawal_amount': 'yatirim_sinir',
+  'under_min_withdrawal_amount': 'yatirim_sinir',
   'total_withdrawal_limit_by_deposit_amount_exceeded': 'yatirim_sinir',
   'late_request': 'yeni_gun',
   'early_withdrawal_attempt': 'sekiz_saatte_cekim',
@@ -90,9 +94,11 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'unmet_post_deposit_balance_casino_wagering': 'Casino çevrimi 1.5 katının altında.',
   'has_active_sport_bets': 'Aktif spor bahsi mevcut.',
   'invalid_player_identity': 'TC Kimlik numarası hatalı.',
-  'invalid_amount': 'Geçersiz çekim tutarı. 10 ve katları olacak şekilde ve minimum çekim tutarının üstünde talep verebilirsiniz.',
+  'invalid_amount': 'Geçersiz çekim tutarı. Miktar 10 ve katları olacak şekilde talep oluşturabilirsiniz.',
   'exceed_player_activity_max_amount': 'Minimum {minAmount} TL, Maximum {maxAmount} TL çekim talebi oluşturabilirsiniz.',
   'under_player_activity_min_amount': 'Minimum {minAmount} TL, Maximum {maxAmount} TL çekim talebi oluşturabilirsiniz.',
+  'exceed_max_withdrawal_amount': 'Maximum çekim tutarı üstünde talep.',
+  'under_min_withdrawal_amount': 'Minimum çekim tutarının altında talep.',
   'total_withdrawal_limit_by_deposit_amount_exceeded': 'Yatırıma bağlı maximum çekim limiti aşıldı. Toplam çekim limiti: {totalLimit} TL, Kalan çekim limiti: {remainingLimit} TL',
   'late_request': 'Yeni gün talep.',
   'early_withdrawal_attempt': 'Son çekim tarihinden sonra çekim yapabileceği zaman: {canWithdrawAt}, Kalan süre: {remainingTime}',
