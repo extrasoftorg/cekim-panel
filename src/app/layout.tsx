@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="tr">
       <body>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider attribute="class" defaultTheme="light">
+          <ThemeProvider attribute="class" defaultTheme="dark">
             <div className="min-h-screen flex flex-col">
               {!isLoginPage && <Navbar />}
               <main className="flex-1 py-6 px-4">{children}</main>

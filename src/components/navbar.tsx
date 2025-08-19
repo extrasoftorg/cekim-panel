@@ -87,7 +87,7 @@ export function Navbar() {
   return (
     <div className="flex flex-col w-full">
       {/* Üst */}
-      <div className="bg-card text-primary px-6 py-3 flex justify-between items-center border-b border-primary/50">
+      <div className="bg-card text-primary px-6 py-3 flex justify-between items-center border-b border-primary/30">
         <div className="text-2xl font-bold ml-25">ÇEKİM</div>
         <ActivityDropdown />
         <Button
@@ -102,7 +102,7 @@ export function Navbar() {
       </div>
 
       {/* Alt */}
-      <div className="bg-card border-b border-primary/50 px-6 py-2">
+      <div className="bg-card border-b border-primary/30 px-6 py-2">
         <div className="flex items-center justify-center space-x-4">
           {navItems.map((item) => {
 
