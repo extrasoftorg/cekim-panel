@@ -90,6 +90,8 @@ export const withdrawalsTable = pgTable("withdrawals", {
     withdrawalStatus: withdrawalStatusEnum('withdrawal_status').notNull().default('pending'),
     message: text('message').notNull(),
     handlingBy: uuid('handling_by').references(() => usersTable.id, { onDelete: 'set null' }),
+    assignedTo: uuid('assigned_to').references(() => usersTable.id, { onDelete: 'set null' }),
+    assignedAt: timestamp('assigned_at', { withTimezone: true }),
 }, (table) => {
     return {
         playerUsernameIndex: index('player_fullname_index').on(table.playerFullname),

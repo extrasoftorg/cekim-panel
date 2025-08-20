@@ -73,6 +73,7 @@ export default function PastWithdrawalsPage() {
   } = useQuery<Withdrawal[]>({
     queryKey: ["pastWithdrawals"],
     queryFn: fetchPastWithdrawals,
+    refetchOnWindowFocus: false,
   })
 
   const [playerUsernameFilter, setPlayerUsernameFilter] = useState("")

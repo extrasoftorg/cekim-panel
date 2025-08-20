@@ -427,25 +427,6 @@ export async function updateWithdrawalStatus(formData: FormData) {
       return { success: false, error: 'Talep bulunamadı' };
     }
 
-    const withdrawalId = updatedWithdrawal[0].id;
-    const redisKey = `withdrawal:assignment:${withdrawalId}`;
-    try {
-      await redis.hset(redisKey, {
-        concludedBy: user.id,
-        concludedByUsername: user.username,
-        transactionId: withdrawal.transactionId,
-        playerUsername: withdrawal.playerFullname,
-        result: status,
-        concludedAt: updatedWithdrawal[0].concludedAt
-          ? (updatedWithdrawal[0].concludedAt instanceof Date
-            ? updatedWithdrawal[0].concludedAt.toISOString()
-            : new Date(updatedWithdrawal[0].concludedAt).toISOString())
-          : new Date().toISOString()
-      })
-    } catch (error) {
-      console.error('Redis sonuç kaydetme hatası', error);
-    }
-
     try {
       const redisKey = `user:${user.id}:statistics`;
       const globalKey = 'global:statistics';
@@ -456,7 +437,6 @@ export async function updateWithdrawalStatus(formData: FormData) {
         await redis.hincrby(globalKey, 'totalApproved', 1);
         await redis.hincrbyfloat(globalKey, 'totalPaidAmount', withdrawal.amount);
       } else {
-        // Ret işlemleri (hem otomatik hem manuel)
         await redis.hincrby(globalKey, 'totalRejected', 1);
       }
 
@@ -479,13 +459,11 @@ export async function updateWithdrawalStatus(formData: FormData) {
           break;
       }
 
-      // totalWithdrawals için global hash'te approved + rejected'ı güncelle
       const totalApproved = parseInt(await redis.hget(globalKey, 'totalApproved') || '0');
       const totalRejected = parseInt(await redis.hget(globalKey, 'totalRejected') || '0');
       const totalWithdrawals = totalApproved + totalRejected;
       await redis.hset(globalKey, 'totalWithdrawals', totalWithdrawals);
 
-      // Ortalama işlem süresi hesaplama (onay ve ret için ayrı ayrı)
       const concludedAt = updatedWithdrawal[0].concludedAt
         ? (updatedWithdrawal[0].concludedAt instanceof Date ? updatedWithdrawal[0].concludedAt : new Date(updatedWithdrawal[0].concludedAt))
         : new Date();

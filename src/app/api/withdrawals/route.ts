@@ -86,12 +86,6 @@ export async function GET(request: Request) {
       .where(whereCondition)
       .orderBy(desc(withdrawalsTable.concludedAt));
 
-    withdrawals.forEach(withdrawal => {
-      if (withdrawal.handlingBy && !withdrawal.handlerUsername) {
-        console.log(`handlingBy dolu ama handlerUsername null: withdrawalId=${withdrawal.id}, handlingBy=${withdrawal.handlingBy}`);
-      }
-    });
-
     return NextResponse.json(withdrawals);
   } catch (error) {
     return NextResponse.json({ error: 'Bir hata oluştu' }, { status: 500 });
@@ -101,8 +95,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('=== REQUEST BODY ===');
-    console.log(JSON.stringify(body, null, 2));
     
     let isAutoEvaluationRequest = false;
     let validatedData: any;
@@ -110,17 +102,11 @@ export async function POST(request: Request) {
     try {
       validatedData = autoEvaluationWithdrawalSchema.parse(body);
       isAutoEvaluationRequest = true;
-      console.log('✅ Auto evaluation request validated');
     } catch (autoEvalError) {
-      console.log('❌ Auto evaluation validation failed:');
-      console.log(autoEvalError);
       try {
         validatedData = withdrawalSchema.parse(body);
         isAutoEvaluationRequest = false;
-        console.log('✅ Manual withdrawal request validated');
       } catch (manualError) {
-        console.log('❌ Manual validation failed:');
-        console.log(manualError);
         return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
       }
     }
@@ -260,29 +246,10 @@ export async function POST(request: Request) {
           message: withdrawalInfo.asText,
           withdrawalStatus: withdrawalStatus,
           handlingBy: handlingBy,
+          assignedTo: withdrawalStatus === 'pending' && handlingBy && handlingBy !== BOT_USER_ID ? handlingBy : null,
+          assignedAt: withdrawalStatus === 'pending' && handlingBy && handlingBy !== BOT_USER_ID ? new Date() : null,
         })
         .returning();
-
-      if (handlingBy && withdrawalStatus === 'pending') {
-        const assignedUser = await db
-          .select({ username: usersTable.username })
-          .from(usersTable)
-          .where(eq(usersTable.id, handlingBy))
-          .limit(1)
-          .then(res => res[0]);
-          
-        if (assignedUser) {
-          const withdrawalId = newWithdrawal[0].id;
-          const redisKey = `withdrawal:assignment:${withdrawalId}`;
-          await redis.hset(redisKey, {
-            id: handlingBy,
-            playerUsername: newWithdrawal[0].playerFullname,
-            transactionId: newWithdrawal[0].transactionId,
-            username: assignedUser.username,
-            assignedAt: new Date().toISOString(),
-          });
-        }
-      }
 
       try {
         const globalKey = 'global:statistics';
@@ -401,6 +368,8 @@ export async function POST(request: Request) {
         message: validatedData.message,
         withdrawalStatus: 'pending',
         handlingBy: assignedPersonnelId,
+        assignedTo: assignedPersonnelId,
+        assignedAt: assignedPersonnelId ? new Date() : null,
       })
       .returning();
 
@@ -413,15 +382,6 @@ export async function POST(request: Request) {
         .limit(1)
         .then(res => res[0]);
       if (assignedUser) {
-        const withdrawalId = newWithdrawal[0].id
-        const redisKey = `withdrawal:assignment:${withdrawalId}`
-        await redis.hset(redisKey, {
-          id: assignedPersonnelId,
-          playerUsername: newWithdrawal[0].playerFullname,
-          transactionId: newWithdrawal[0].transactionId,
-          username: assignedUser.username,
-          assignedAt: new Date().toISOString(),
-        })
         message += ` ve ${assignedUser.username} kişisine atandı`;
       } else {
         message += ', ancak atanan personel bulunamadı';

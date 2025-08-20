@@ -1,9 +1,9 @@
 "use server"
 import { NextResponse } from "next/server"
 import { db } from '@/db/index';
-import { eq, desc } from 'drizzle-orm';
-import { userStatusLogsTable, usersTable } from '@/db/schema';
-import redis from "@/db/redis"
+import { eq, desc, isNotNull, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
+import { userStatusLogsTable, usersTable, withdrawalsTable } from '@/db/schema';
 import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: Request) {
@@ -25,47 +25,39 @@ export async function GET(request: Request) {
             .leftJoin(usersTable, eq(userStatusLogsTable.userId, usersTable.id))
             .orderBy(desc(userStatusLogsTable.createdAt))
 
-        const keys = await redis.keys("withdrawal:assignment:*")
-        const withdrawalLogs = []
-        if (keys && keys.length > 0) {
-            for (const key of keys) {
-                const data = await redis.hgetall(key)
-                const withdrawalId = key.split(":").pop()
+        const assignedToUser = alias(usersTable, 'assignedToUser');
+        const withdrawalAssignmentLogs = await db
+            .select({
+                withdrawalId: withdrawalsTable.id,
+                transactionId: withdrawalsTable.transactionId,
+                playerFullname: withdrawalsTable.playerFullname,
+                type: sql`'assignment'`.as('type'),
+                assignedTo: assignedToUser.username,
+                assignedAt: withdrawalsTable.assignedAt,
+                details: sql`${withdrawalsTable.playerFullname} || ' kullanıcının ' || ${withdrawalsTable.transactionId} || ' IDli talebi ' || ${assignedToUser.username} || ' kisisine atandi.'`.as('details')
+            })
+            .from(withdrawalsTable)
+            .leftJoin(assignedToUser, eq(withdrawalsTable.assignedTo, assignedToUser.id))
+            .where(isNotNull(withdrawalsTable.assignedTo))
+            .orderBy(desc(withdrawalsTable.assignedAt))
 
-                // Talep atama data
-                if (data.id && data.username && data.assignedAt && data.playerUsername && data.transactionId) {
-                    const assignedAt = data.assignedAt
-                        ? new Date(data.assignedAt).toISOString() 
-                        : new Date().toISOString();
-                    withdrawalLogs.push({
-                        withdrawalId,
-                        transactionId: data.transactionId,
-                        playerUsername: data.playerUsername,
-                        type: 'assignment',
-                        assignedTo: data.username,
-                        assignedAt: assignedAt,
-                        details: `${data.playerUsername} Kullanıcının ${data.transactionId} ID'li talebi ${data.username} kişisine atandı.`
-                    })
-                }
-
-                // Talep sonucu data
-                if (data.concludedBy && data.concludedByUsername && data.result && data.concludedAt && data.playerUsername && data.transactionId) {
-                    const concludedAt = data.concludedAt
-                        ? new Date(data.concludedAt).toISOString() 
-                        : new Date().toISOString();
-                    withdrawalLogs.push({
-                        withdrawalId,
-                        transactionId: data.transactionId,
-                        playerUsername: data.playerUsername,
-                        type: 'conclude',
-                        concludeBy: data.concludedByUsername,
-                        concludedAt: concludedAt,
-                        result: data.result,
-                        details: `${data.playerUsername} Kullanıcının ${data.transactionId} ID'li talebi ${data.concludedByUsername} tarafından ${data.result === 'approved' ? 'onaylandı' : 'reddedildi'}.`
-                    })
-                }
-            }
-        }
+        const concludedByUser = alias(usersTable, 'concludedByUser');
+        const withdrawalConcludeLogs = await db
+            .select({
+                withdrawalId: withdrawalsTable.id,
+                transactionId: withdrawalsTable.transactionId,
+                playerFullname: withdrawalsTable.playerFullname,
+                type: sql`'conclude'`.as('type'),
+                concludeBy: concludedByUser.username,
+                concludedAt: withdrawalsTable.concludedAt,
+                result: withdrawalsTable.withdrawalStatus,
+                details: sql`${withdrawalsTable.playerFullname} || ' kullanıcının ' || ${withdrawalsTable.transactionId} || ' IDli talebi ' || ${concludedByUser.username} || ' tarafindan ' || 
+                    CASE WHEN ${withdrawalsTable.withdrawalStatus} = 'approved' THEN 'onaylandi' ELSE 'reddedildi' END || '.'`.as('details')
+            })
+            .from(withdrawalsTable)
+            .leftJoin(concludedByUser, eq(withdrawalsTable.handlingBy, concludedByUser.id))
+            .where(isNotNull(withdrawalsTable.concludedAt))
+            .orderBy(desc(withdrawalsTable.concludedAt))
 
         const allLogs = [
             ...userStatusLogs.map(log => ({
@@ -74,13 +66,17 @@ export async function GET(request: Request) {
                 username: log.username,
                 activityStatus: log.activityStatus,
                 timestamp: log.createdAt
-                    ? (log.createdAt instanceof Date ? log.createdAt.toISOString() : new Date(log.createdAt).toISOString()) // +3 saat eklemeden UTC
+                    ? (log.createdAt instanceof Date ? log.createdAt.toISOString() : new Date(log.createdAt).toISOString())
                     : new Date().toISOString(),
                 details: `Durumu ${log.activityStatus === 'online' ? 'Çevrimiçi' : log.activityStatus === 'away' ? 'Mola' : 'Çevrimdışı'} olarak güncellendi.`,
             })),
-            ...withdrawalLogs.map(log => ({
+            ...withdrawalAssignmentLogs.map(log => ({
                 ...log,
-                timestamp: log.assignedAt || log.concludedAt || new Date().toISOString(),
+                timestamp: log.assignedAt ? new Date(log.assignedAt).toISOString() : new Date().toISOString(),
+            })),
+            ...withdrawalConcludeLogs.map(log => ({
+                ...log,
+                timestamp: log.concludedAt ? new Date(log.concludedAt).toISOString() : new Date().toISOString(),
             })),
         ].sort((a, b) => {
             const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
