@@ -175,7 +175,7 @@ export async function updateWithdrawalStatus(formData: FormData) {
 
       const today = startOfDay(new Date());
       const fromDateLocal = format(today, 'dd-MM-yy - HH:mm:ss');
-      const toDateLocal = format(addDays(today, 1), 'dd-MM-yy - HH:mm:ss');
+      const toDateLocal = format(addDays(today, 2), 'dd-MM-yy - HH:mm:ss');
 
       const fetchNewResponse = await fetch(
         'https://backofficewebadmin.betconstruct.com/api/en/Client/GetClientWithdrawalRequestsWithTotals',
