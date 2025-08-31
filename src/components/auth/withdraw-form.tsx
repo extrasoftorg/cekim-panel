@@ -1438,7 +1438,11 @@ export default function WithdrawPage() {
                             currentUser.id === withdrawal.handlingBy && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button size="sm" className="compact-btn" variant="green">
+                                  <Button 
+                                    size="sm" 
+                                    className="compact-btn" 
+                                    variant={withdrawal.amount >= 10000 ? "bred" : "green"}
+                                  >
                                     İşlem
                                   </Button>
                                 </DropdownMenuTrigger>
