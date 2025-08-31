@@ -1,2 +1,0 @@
-CREATE UNIQUE INDEX "reports_codename_idx" ON "reports" USING btree ("codename" ASC NULLS LAST);
-ALTER TABLE "reports" ADD CONSTRAINT "reports_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action; 

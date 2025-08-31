@@ -2,26 +2,26 @@ import { pgTable, serial, uuid, text, varchar, timestamp, pgEnum, integer, doubl
 import { relations } from 'drizzle-orm';
 import { table } from 'console';
 
-const roleEnum = pgEnum('role', [
+export const roleEnum = pgEnum('role', [
     'admin',
     'cekimSorumlusu',
     'cekimPersoneli',
     'spectator'
 ]);
 
-const activityStatusEnum = pgEnum('activity_status', [
+export const activityStatusEnum = pgEnum('activity_status', [
     'online',
     'away',
     'offline'
 ]);
 
-const withdrawalStatusEnum = pgEnum('withdrawal_status', [
+export const withdrawalStatusEnum = pgEnum('withdrawal_status', [
     'pending',
     'approved',
     'rejected',
 ]);
 
-const rejectReasonEnum = pgEnum('reject_reason', [
+export const rejectReasonEnum = pgEnum('reject_reason', [
     'anapara_cevrim',
     'acik_bonus_cevrim',
     'acik_bahis_cevrim',

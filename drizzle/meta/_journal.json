@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1755092760003,
-      "tag": "0000_magenta_captain_stacy",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1755092760005,
-      "tag": "0001_final_fixes",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1755683194922,
-      "tag": "0002_dry_captain_midlands",
+      "when": 1756499775371,
+      "tag": "0000_productive_arclight",
       "breakpoints": true
     }
   ]

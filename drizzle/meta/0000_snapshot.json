@@ -1,5 +1,5 @@
 {
-  "id": "fec80038-e556-458e-b0e0-5bd7bf2a5d80",
+  "id": "c4a0952e-89ba-4372-900e-8b91393b373d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -388,6 +388,18 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
+        },
+        "assigned_to": {
+          "name": "assigned_to",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_at": {
+          "name": "assigned_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -420,6 +432,19 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
+        },
+        "withdrawals_assigned_to_users_id_fk": {
+          "name": "withdrawals_assigned_to_users_id_fk",
+          "tableFrom": "withdrawals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "assigned_to"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -430,6 +455,48 @@
     }
   },
   "enums": {
+    "public.activity_status": {
+      "name": "activity_status",
+      "schema": "public",
+      "values": [
+        "online",
+        "away",
+        "offline"
+      ]
+    },
+    "public.reject_reason": {
+      "name": "reject_reason",
+      "schema": "public",
+      "values": [
+        "anapara_cevrim",
+        "acik_bonus_cevrim",
+        "acik_bahis_cevrim",
+        "coklu_hesap",
+        "ip_coklu",
+        "ayni_aile_coklu",
+        "deneme_sinir",
+        "call_siniri",
+        "promosyon_sinir",
+        "yatirim_sinir",
+        "hediye_sinir",
+        "bonus_sinir",
+        "safe_bahis",
+        "ozel_oyun_kontrol",
+        "kurma_bahis",
+        "casino_kurma_bahis",
+        "bire1_bahis",
+        "yatirim_bonus_suistimal",
+        "cashback_suistimal",
+        "deneme_suistimal",
+        "hediye_suistimal",
+        "yontem_sorunu",
+        "sekiz_saatte_cekim",
+        "tc_hata",
+        "yeni_gun",
+        "ikiyuztl_alt",
+        "on_katlari"
+      ]
+    },
     "public.report_status": {
       "name": "report_status",
       "schema": "public",
@@ -437,6 +504,25 @@
         "pending",
         "completed",
         "failed"
+      ]
+    },
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "admin",
+        "cekimSorumlusu",
+        "cekimPersoneli",
+        "spectator"
+      ]
+    },
+    "public.withdrawal_status": {
+      "name": "withdrawal_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "approved",
+        "rejected"
       ]
     }
   },
