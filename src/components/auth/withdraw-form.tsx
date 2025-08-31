@@ -1424,7 +1424,11 @@ export default function WithdrawPage() {
                             Detay
                           </Button>
                           {currentUser.id !== withdrawal.handlingBy && withdrawal.handlingBy && (
-                            <Button size="sm" className="compact-btn" variant="softPurple">
+                            <Button 
+                              size="sm" 
+                              className="compact-btn" 
+                              variant={withdrawal.amount >= 10000 ? "red" : "softPurple"}
+                            >
                               {withdrawal.handlerUsername}
                             </Button>
                           )}

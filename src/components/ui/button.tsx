@@ -33,6 +33,8 @@ const buttonVariants = cva(
           "bg-purple-300 text-white shadow-xs hover:bg-purple-400 dark:bg-purple-400 dark:hover:bg-purple-300",
         softPurple:
           "bg-violet-500 text-white shadow-xs hover:bg-violet-600",
+        red:
+          "bg-red-100 text-red-700 border border-red-300 shadow-xs hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/30",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
