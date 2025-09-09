@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useMemo, type JSX, useEffect } from "react"
+import { useState, useMemo, type JSX, useEffect, useLayoutEffect, useId } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,9 +12,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Users, CheckCircle, XCircle, Bot, Percent, Wallet, Clock } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { FiCalendar, FiRefreshCw } from "react-icons/fi"
+import { FiCalendar, FiFilter } from "react-icons/fi"
 
 interface DateRange {
+  from: Date | undefined
+  to: Date | undefined
+}
+
+interface DateTimeRange {
   from: Date | undefined
   to: Date | undefined
 }
@@ -42,15 +47,15 @@ interface Statistic {
 }
 
 const fetchDashboardStats = async (startDate?: string, endDate?: string): Promise<{ data: Stats }> => {
-  const requestBody: Record<string, string> = {}
+  const params = new URLSearchParams()
+  if (startDate) params.append('startDate', startDate)
+  if (endDate) params.append('endDate', endDate)
 
-  if (startDate) requestBody.startDate = startDate
-  if (endDate) requestBody.endDate = endDate
-
-  const response = await fetch("/api/dashboard", {
-    method: "POST",
+  const url = `/api/dashboard${params.toString() ? `?${params.toString()}` : ''}`
+  
+  const response = await fetch(url, {
+    method: "GET",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(requestBody),
   })
 
   if (!response.ok) {
@@ -60,7 +65,21 @@ const fetchDashboardStats = async (startDate?: string, endDate?: string): Promis
   return response.json()
 }
 
-const formatDate = (date: Date | undefined): string => (date ? format(date, "dd.MM.yy") : "Seçin")
+const formatDate = (date: Date | undefined, isClient: boolean): string => {
+  if (!date || !isClient) return "Seçin"
+  
+  try {
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear().toString().slice(-2)
+    const formatted = `${day}.${month}.${year}`
+    console.log('🔧 formatDate (native):', { date, formatted, isClient })
+    return formatted
+  } catch (error) {
+    console.error('🔧 formatDate error:', error)
+    return "Seçin"
+  }
+}
 
 const createStatistic = (
   icon: JSX.Element,
@@ -135,43 +154,224 @@ const translateRejectReason = (reason: string): string => {
   }
 };
 
-interface DatePickerProps {
-  label: string
-  value: Date | undefined
-  onChange: (date: Date | undefined) => void
+interface DateTimeRangePickerProps {
+  value: { from: Date | undefined; to: Date | undefined }
+  onChange: (range: { from: Date | undefined; to: Date | undefined }) => void
+  isClient: boolean
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange }) => (
-  <Popover>
-    <PopoverTrigger asChild>
-      <Button
-        variant="outline"
-        className={cn("w-[200px] h-9 justify-start text-left font-normal", !value && "text-muted-foreground")}
-      >
-        <FiCalendar className="mr-2 h-4 w-4" />
-        <span className="flex-1">
-          {label}: {formatDate(value)}
-        </span>
-        {value && (
-          <span
-            onClick={(e) => {
-              e.stopPropagation()
-              onChange(undefined)
-            }}
-            className="ml-2 cursor-pointer text-muted-foreground hover:text-destructive"
+const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({ value, onChange, isClient }) => {
+  const formatDateTimeRange = (from: Date | undefined, to: Date | undefined, isClient: boolean): string => {
+    if (!from || !to || !isClient) return "Tarih aralığı seçiniz"
+    
+    try {
+      const formatDate = (date: Date) => {
+        const day = date.getDate().toString().padStart(2, '0')
+        const month = (date.getMonth() + 1).toString().padStart(2, '0')
+        const year = date.getFullYear().toString().slice(-2)
+        return `${day}.${month}.${year}`
+      }
+      
+      const formatTime = (date: Date) => {
+        const hours = date.getHours().toString().padStart(2, '0')
+        const minutes = date.getMinutes().toString().padStart(2, '0')
+        return `${hours}:${minutes}`
+      }
+      
+      const fromStr = `${formatDate(from)} ${formatTime(from)}`
+      const toStr = `${formatDate(to)} ${formatTime(to)}`
+      
+      return `${fromStr} - ${toStr}`
+    } catch (error) {
+      return "Tarih aralığı seçiniz"
+    }
+  }
+
+  const presetRanges = [
+    {
+      label: "Bugün",
+      getValue: () => {
+        const today = new Date()
+        const startOfDay = new Date(today)
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(today)
+        endOfDay.setHours(23, 59, 59, 999)
+        return { from: startOfDay, to: endOfDay }
+      }
+    },
+    {
+      label: "Son 7 gün",
+      getValue: () => {
+        const today = new Date()
+        const endOfDay = new Date(today)
+        endOfDay.setHours(23, 59, 59, 999)
+        const startOfDay = new Date(today)
+        startOfDay.setDate(today.getDate() - 6)
+        startOfDay.setHours(0, 0, 0, 0)
+        return { from: startOfDay, to: endOfDay }
+      }
+    },
+    {
+      label: "Son 30 gün",
+      getValue: () => {
+        const today = new Date()
+        const endOfDay = new Date(today)
+        endOfDay.setHours(23, 59, 59, 999)
+        const startOfDay = new Date(today)
+        startOfDay.setDate(today.getDate() - 29)
+        startOfDay.setHours(0, 0, 0, 0)
+        return { from: startOfDay, to: endOfDay }
+      }
+    }
+  ]
+
+  return (
+    <div className="text-center">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full h-9 justify-start text-left font-normal",
+              (!value.from || !value.to) && "text-muted-foreground",
+            )}
           >
-            ✕
-          </span>
-        )}
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent className="w-auto p-0" align="start">
-      <Calendar mode="single" selected={value} onSelect={(date) => onChange(date)} initialFocus />
-    </PopoverContent>
-  </Popover>
-)
+            <FiCalendar className="mr-2 h-4 w-4" />
+            <span className="flex-1">
+              {formatDateTimeRange(value.from, value.to, isClient)}
+            </span>
+            {(value.from || value.to) && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onChange({ from: undefined, to: undefined })
+                }}
+                className="ml-2 cursor-pointer text-muted-foreground hover:text-destructive text-xl leading-none flex items-center justify-center"
+              >
+                ×
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <div className="p-4">
+            <div className="space-y-4">
+              {/* Preset Butonları */}
+              <div className="space-y-1">
+                {presetRanges.map((preset, index) => (
+                  <button
+                    key={index}
+                    onClick={() => onChange(preset.getValue())}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="border-t pt-4">
+                {/* Tarih Seçimleri - Yan Yana */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Başlangıç Tarihi</label>
+                    <Calendar
+                      mode="single"
+                      selected={value.from}
+                      onSelect={(date) => {
+                        if (date) {
+                          const newDate = new Date(date)
+                          if (value.from) {
+                            newDate.setHours(value.from.getHours(), value.from.getMinutes(), 0, 0)
+                          } else {
+                            newDate.setHours(0, 0, 0, 0)
+                          }
+                          onChange({ ...value, from: newDate })
+                        } else {
+                          onChange({ ...value, from: undefined })
+                        }
+                      }}
+                      initialFocus
+                    />
+                    <div className="mt-2">
+                      <label className="text-sm font-medium mb-1 block">Başlangıç Saati</label>
+                      <input
+                        type="time"
+                        value={value.from ? `${value.from.getHours().toString().padStart(2, '0')}:${value.from.getMinutes().toString().padStart(2, '0')}` : '00:00'}
+                        onChange={(e) => {
+                          const [hours, minutes] = e.target.value.split(':').map(Number)
+                          if (!isNaN(hours) && !isNaN(minutes)) {
+                            if (value.from) {
+                              const newDate = new Date(value.from)
+                              newDate.setHours(hours, minutes, 0, 0)
+                              onChange({ ...value, from: newDate })
+                            } else {
+                              const today = new Date()
+                              today.setHours(hours, minutes, 0, 0)
+                              onChange({ ...value, from: today })
+                            }
+                          }
+                        }}
+                        className="w-full px-2 py-1 text-sm border border-input bg-background rounded"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Bitiş Tarihi</label>
+                    <Calendar
+                      mode="single"
+                      selected={value.to}
+                      onSelect={(date) => {
+                        if (date) {
+                          const newDate = new Date(date)
+                          if (value.to) {
+                            newDate.setHours(value.to.getHours(), value.to.getMinutes(), 59, 999)
+                          } else {
+                            newDate.setHours(23, 59, 59, 999)
+                          }
+                          onChange({ ...value, to: newDate })
+                        } else {
+                          onChange({ ...value, to: undefined })
+                        }
+                      }}
+                      disabled={(date) => value.from ? date < value.from : false}
+                    />
+                    <div className="mt-2">
+                      <label className="text-sm font-medium mb-1 block">Bitiş Saati</label>
+                      <input
+                        type="time"
+                        value={value.to ? `${value.to.getHours().toString().padStart(2, '0')}:${value.to.getMinutes().toString().padStart(2, '0')}` : '23:59'}
+                        onChange={(e) => {
+                          const [hours, minutes] = e.target.value.split(':').map(Number)
+                          if (!isNaN(hours) && !isNaN(minutes)) {
+                            if (value.to) {
+                              const newDate = new Date(value.to)
+                              newDate.setHours(hours, minutes, 59, 999)
+                              onChange({ ...value, to: newDate })
+                            } else {
+                              const today = new Date()
+                              today.setHours(hours, minutes, 59, 999)
+                              onChange({ ...value, to: today })
+                            }
+                          }
+                        }}
+                        className="w-full px-2 py-1 text-sm border border-input bg-background rounded"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
 
 export function DashboardForm() {
+  const id = useId()
+  const [isClient, setIsClient] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
@@ -187,27 +387,10 @@ export function DashboardForm() {
     endDate: undefined,
   })
 
-  useEffect(() => {
-    if (dateRange.from && dateRange.to) {
-      const startOfDay = new Date(dateRange.from)
-      startOfDay.setHours(0, 0, 0, 0)
+  useLayoutEffect(() => {
+    setIsClient(true)
+  }, [])
 
-      const endOfDay = new Date(dateRange.to)
-      endOfDay.setHours(23, 59, 59, 999)
-
-      setQueryParams({
-        startDate: startOfDay.toISOString(),
-        endDate: endOfDay.toISOString(),
-      })
-      setIsFiltered(true)
-    } else if (!dateRange.from && !dateRange.to) {
-      setQueryParams({
-        startDate: undefined,
-        endDate: undefined,
-      })
-      setIsFiltered(false)
-    }
-  }, [dateRange.from, dateRange.to])
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard", queryParams.startDate, queryParams.endDate],
@@ -244,8 +427,9 @@ export function DashboardForm() {
     botRejected,
   } = stats
 
-  const botTotalOperations = botApproved + botRejected
-  const botApprovalRate = botTotalOperations > 0 ? (botApproved / botTotalOperations) * 100 : 0
+
+  const botTotalOperations = Number(botApproved) + Number(botRejected)
+  const botApprovalRate = botTotalOperations > 0 ? (Number(botApproved) / botTotalOperations) * 100 : 0
 
   const statistics: Statistic[] = useMemo(
     () => [
@@ -260,19 +444,28 @@ export function DashboardForm() {
         <Percent className="w-4 h-4 text-green-500" />,
         "Bot Onay Yüzdesi",
         botApprovalRate,
-        (v) => `${v.toFixed(1)}%`,
+        (v) => `${(v || 0).toFixed(1)}%`,
       ),
       createStatistic(
         <Percent className="w-4 h-4 text-blue-500" />,
         "Genel Onay Yüzdesi",
         approvalRate,
-        (v) => `${v.toFixed(1)}%`,
+        (v) => `${(v || 0).toFixed(1)}%`,
       ),
       createStatistic(
         <Wallet className="w-4 h-4 text-yellow-500" />,
         "Ödenmiş Çekim Miktarı",
         totalPaidAmount,
-        (v) => `₺${new Intl.NumberFormat("tr-TR").format(v)}`,
+        (v) => {
+          if (!isClient) return `₺${v.toLocaleString()}`
+          try {
+              const formatted = v.toLocaleString('tr-TR')
+            return `₺${formatted}`
+          } catch (error) {
+            console.error('NumberFormat error:', error)
+            return `₺${v.toString()}`
+          }
+        },
       ),
     ],
     [
@@ -286,40 +479,57 @@ export function DashboardForm() {
       botApproved,
       botRejected,
       botApprovalRate,
+      isClient,
     ],
   )
 
-  const clearFilters = () => {
-    setDateRange({ from: undefined, to: undefined })
+  const applyFilters = () => {
+    if (dateRange.from && dateRange.to) {
+      const startDate = dateRange.from.toISOString()
+      const endDate = dateRange.to.toISOString()
+
+      setQueryParams({
+        startDate,
+        endDate,
+      })
+      setIsFiltered(true)
+    }
   }
 
-      if (isLoading) return <LoadingSpinner message="Dashboard verileri yükleniyor..." />
+  if (!isClient) {
+    return <LoadingSpinner message="Dashboard yükleniyor..." />
+  }
+  if (isLoading) return <LoadingSpinner message="Dashboard verileri yükleniyor..." />
   if (error) return <div>Hata: {(error as Error).message}</div>
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-[color:var(--primary)]">İstatistikler</h1>
-        <div className="flex items-center gap-4 mr-40">
-          <DatePicker
-            label="Başlangıç"
-            value={dateRange.from}
-            onChange={(date) => setDateRange((prev) => ({ ...prev, from: date }))}
-          />
-          <DatePicker
-            label="Bitiş"
-            value={dateRange.to}
-            onChange={(date) => setDateRange((prev) => ({ ...prev, to: date }))}
-          />
-          {isFiltered && (
-            <Button onClick={clearFilters} variant="outline" className="h-9 flex items-center justify-center">
-              <FiRefreshCw className="h-4 w-4 mr-1" />
-              Temizle
+    <div className="mx-auto max-w-6xl" suppressHydrationWarning={true}>
+      <div className="glass-effect p-4 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-[color:var(--primary)]">İstatistikler</h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-75">
+            <DateTimeRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              isClient={isClient}
+            />
+          </div>
+          <div className="flex-shrink-0">
+            <Button 
+              onClick={applyFilters} 
+              variant="outline" 
+              className="h-9 px-4 flex items-center justify-center"
+              disabled={!dateRange.from || !dateRange.to}
+            >
+              <FiFilter className="h-4 w-4 mr-1" />
+              Filtrele
             </Button>
-          )}
+          </div>
         </div>
       </div>
-      <div className="px-4 mx-auto max-w-6xl">
+      <div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
           {statistics.map((stat, index) => (
             <Card
@@ -352,27 +562,29 @@ export function DashboardForm() {
               {fastestApprovers.length === 0 ? (
                 <div className="processing-time-empty">Personel verisi mevcut değil.</div>
               ) : (
-                fastestApprovers.map((approver, index) => {
-                  const rejecter = fastestRejecters.find((r) => r.handlerUsername === approver.handlerUsername) || {
-                    avgRejectionDuration: 0,
-                  }
-                  return (
-                    <div key={index} className="processing-time-row">
-                      <div className="processing-time-index">{index + 1}</div>
-                      <div className="processing-time-name">{approver.handlerUsername}</div>
-                      <div className="processing-time-stats">
-                        <div className="processing-time-stat">
-                          <div className="processing-time-label">Ort. Onay Süresi</div>
-                          <div className="processing-time-value">{approver.avgApprovalDuration.toFixed(2)} dk</div>
-                        </div>
-                        <div className="processing-time-stat">
-                          <div className="processing-time-label">Ort. Ret Süresi</div>
-                          <div className="processing-time-value">{rejecter.avgRejectionDuration.toFixed(2)} dk</div>
+                fastestApprovers
+                  .filter(approver => approver && approver.handlerUsername && typeof approver.avgApprovalDuration === 'number')
+                  .map((approver, index) => {
+                    const rejecter = fastestRejecters.find((r) => r && r.handlerUsername === approver.handlerUsername) || {
+                      avgRejectionDuration: 0,
+                    }
+                    return (
+                      <div key={index} className="processing-time-row">
+                        <div className="processing-time-index">{index + 1}</div>
+                        <div className="processing-time-name">{approver.handlerUsername}</div>
+                        <div className="processing-time-stats">
+                          <div className="processing-time-stat">
+                            <div className="processing-time-label">Ort. Onay Süresi</div>
+                            <div className="processing-time-value">{(approver.avgApprovalDuration || 0).toFixed(2)} dk</div>
+                          </div>
+                          <div className="processing-time-stat">
+                            <div className="processing-time-label">Ort. Ret Süresi</div>
+                            <div className="processing-time-value">{(rejecter.avgRejectionDuration || 0).toFixed(2)} dk</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )
-                })
+                    )
+                  })
               )}
             </div>
           </div>
@@ -401,7 +613,7 @@ export function DashboardForm() {
                         <div className="processing-time-stat">
                           <div className="processing-time-label">Toplam Tutar</div>
                           <div className="processing-time-value">
-                            ₺{new Intl.NumberFormat("tr-TR").format(stats.totalAmount)}
+                            ₺{isClient ? stats.totalAmount.toLocaleString('tr-TR') : stats.totalAmount.toString()}
                           </div>
                         </div>
                       </div>
