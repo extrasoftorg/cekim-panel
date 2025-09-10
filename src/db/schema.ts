@@ -49,6 +49,9 @@ export const rejectReasonEnum = pgEnum('reject_reason', [
     'yeni_gun',
     'ikiyuztl_alt',
     'on_katlari',
+
+    'uye_iptali',
+    'diger',
 ])
 
 export const reportStatusEnum = pgEnum('report_status', ['pending', 'completed', 'failed'])

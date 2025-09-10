@@ -95,6 +95,10 @@ const createStatistic = (
 
 const translateRejectReason = (reason: string): string => {
   switch (reason) {
+    case "uye_iptali":
+      return "Üye Talep İptali";
+    case "diger":
+      return "Diğer Sebepler";
     case "anapara_cevrim":
       return "Anapara Eksik Çevrim";
     case "acik_bonus_cevrim":

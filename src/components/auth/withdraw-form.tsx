@@ -110,12 +110,22 @@ const rejectionCategories: { [key: string]: { [subKey: string]: string[] } | str
   },
   "Yöntem Sorunu": [
     "yontem_sorunu"
-  ]
+  ],
+  "Üye Talep İptali": [
+    "uye_iptali"
+  ],
+  "Diğer Sebepler": [
+    "diger"
+  ],
 }
 
 // Ret sebeplerini çeviri fonksiyonu
 function translateRejectReason(reason: string): string {
   switch (reason) {
+    case "uye_iptali":
+      return "Üye Talep İptali";
+    case "diger":
+      return "Diğer Sebepler";
     case "anapara_cevrim":
       return "Anapara Eksik Çevrim";
     case "acik_bonus_cevrim":
@@ -890,8 +900,56 @@ const YontemSorunuFields: React.FC<{ formValues: FormValues; setFormValues: Reac
     </div>
   </div>
 );
+
+const UyeIptaliFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const DigerFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
 // Component Mapping
 const rejectionFieldComponents = {
+  uye_iptali: UyeIptaliFields,
+  diger: DigerFields,
   anapara_cevrim: AnaparaCevrimFields,
   acik_bonus_cevrim: AcikBonusCevrimFields,
   acik_bahis_cevrim: AcikBahisCevrimFields,
