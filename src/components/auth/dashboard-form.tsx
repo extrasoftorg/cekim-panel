@@ -143,10 +143,10 @@ const translateRejectReason = (reason: string): string => {
       return "Hediye Bonus Suistimali";
     case "yontem_sorunu":
       return "Yöntem Sorunu";
-    case "sekiz_saatte_cekim":
-      return "8 Saatte Bir Çekim";
     case "tc_hata":
-      return "TC Hata";
+      return "TC Bilgileri Hatalı";
+    case "sekiz_saatte_cekim":
+      return "Çekim Saat Sınırı";
     case "yeni_gun":
       return "Yeni Gün";
     case "ikiyuztl_alt":

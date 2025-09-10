@@ -111,6 +111,12 @@ const rejectionCategories: { [key: string]: { [subKey: string]: string[] } | str
   "Yöntem Sorunu": [
     "yontem_sorunu"
   ],
+  "TC Bilgileri Hatalı": [
+    "tc_hata"
+  ],
+  "Çekim Saat Sınırı": [
+    "sekiz_saatte_cekim"
+  ],
   "Üye Talep İptali": [
     "uye_iptali"
   ],
@@ -170,10 +176,10 @@ function translateRejectReason(reason: string): string {
       return "Hediye Bonus Suistimali";
     case "yontem_sorunu":
       return "Yöntem Sorunu";
-    case "sekiz_saatte_cekim":
-      return "8 Saatte Bir Çekim";
     case "tc_hata":
-      return "TC Hata";
+      return "TC Bilgileri Hatalı";
+    case "sekiz_saatte_cekim":
+      return "Çekim Saat Sınırı (8 Saatte Bir Çekim)";
     case "yeni_gun":
       return "Yeni Gün";
     case "ikiyuztl_alt":
@@ -946,10 +952,58 @@ const DigerFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispa
     </div>
   </div>
 );
+
+const TcHataFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
+
+const SekizSaatteCekimFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
 // Component Mapping
 const rejectionFieldComponents = {
   uye_iptali: UyeIptaliFields,
   diger: DigerFields,
+  tc_hata: TcHataFields,
+  sekiz_saatte_cekim: SekizSaatteCekimFields,
   anapara_cevrim: AnaparaCevrimFields,
   acik_bonus_cevrim: AcikBonusCevrimFields,
   acik_bahis_cevrim: AcikBahisCevrimFields,
