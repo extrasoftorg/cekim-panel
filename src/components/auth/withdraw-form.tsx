@@ -83,7 +83,7 @@ const rejectionCategories: { [key: string]: { [subKey: string]: string[] } | str
     "ip_coklu",
     "ayni_aile_coklu"
   ],
-  "Maksimum Çekim Sınırı": [
+  "Minimum Maksimum Çekim Sınırı": [
     "deneme_sinir",
     "call_siniri",
     "promosyon_sinir",
