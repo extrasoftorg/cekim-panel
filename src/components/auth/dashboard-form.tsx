@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import LoadingSpinner from "@/components/loading-spinner"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Users, CheckCircle, XCircle, Bot, Percent, Wallet, Clock } from "lucide-react"
@@ -528,8 +529,6 @@ export function DashboardForm() {
   if (!isClient) {
     return <LoadingSpinner message="Dashboard yükleniyor..." />
   }
-  if (isLoading) return <LoadingSpinner message="Dashboard verileri yükleniyor..." />
-  if (error) return <div>Hata: {(error as Error).message}</div>
 
   return (
     <div className="mx-auto max-w-6xl" suppressHydrationWarning={true}>
@@ -560,24 +559,46 @@ export function DashboardForm() {
       </div>
       <div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
-          {statistics.map((stat, index) => (
-            <Card
-              key={index}
-              className="personel-card p-2 border border-[color:var(--border)] rounded-md bg-[color:var(--card)] shadow-sm"
-            >
-              <CardContent className="flex items-center gap-2 p-2">
-                <div className="h-9 w-9 rounded-full bg-[color:var(--secondary)] flex items-center justify-center">
-                  {stat.icon}
-                </div>
-                <div>
-                  <p className="text-[12px] text-muted-foreground">{stat.title}</p>
-                  <p className="text-sm font-semibold text-[color:var(--primary)]">
-                    {stat.format ? stat.format(stat.value) : stat.value}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {isLoading ? (
+            // Skeleton loading - 5 kart için
+            Array.from({ length: 10 }).map((_, index) => (
+              <Card
+                key={index}
+                className="personel-card p-2 border border-[color:var(--border)] rounded-md bg-[color:var(--card)] shadow-sm"
+              >
+                <CardContent className="flex items-center gap-2 p-2">
+                  <Skeleton className="h-9 w-9 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-3 w-16 mb-1" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : error ? (
+            <div className="col-span-full text-center py-8">
+              <div className="text-destructive">Hata: {(error as Error).message}</div>
+            </div>
+          ) : (
+            statistics.map((stat, index) => (
+              <Card
+                key={index}
+                className="personel-card p-2 border border-[color:var(--border)] rounded-md bg-[color:var(--card)] shadow-sm"
+              >
+                <CardContent className="flex items-center gap-2 p-2">
+                  <div className="h-9 w-9 rounded-full bg-[color:var(--secondary)] flex items-center justify-center">
+                    {stat.icon}
+                  </div>
+                  <div>
+                    <p className="text-[12px] text-muted-foreground">{stat.title}</p>
+                    <p className="text-sm font-semibold text-[color:var(--primary)]">
+                      {stat.format ? stat.format(stat.value) : stat.value}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         <div className="mt-6">
@@ -588,7 +609,24 @@ export function DashboardForm() {
             </div>
 
             <div className="processing-time-content">
-              {fastestApprovers.length === 0 ? (
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="processing-time-row">
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                    <Skeleton className="h-4 w-20" />
+                    <div className="processing-time-stats">
+                      <div className="processing-time-stat">
+                        <Skeleton className="h-3 w-16 mb-1" />
+                        <Skeleton className="h-4 w-12" />
+                      </div>
+                      <div className="processing-time-stat">
+                        <Skeleton className="h-3 w-16 mb-1" />
+                        <Skeleton className="h-4 w-12" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : fastestApprovers.length === 0 ? (
                 <div className="processing-time-empty">Personel verisi mevcut değil.</div>
               ) : (
                 fastestApprovers
@@ -625,7 +663,24 @@ export function DashboardForm() {
             </div>
 
             <div className="processing-time-content">
-              {Object.keys(rejectReasonsStats).length === 0 ? (
+              {isLoading ? (
+                Array.from({ length: 10 }).map((_, index) => (
+                  <div key={index} className="processing-time-row">
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                    <Skeleton className="h-4 w-32" />
+                    <div className="processing-time-stats">
+                      <div className="processing-time-stat">
+                        <Skeleton className="h-3 w-16 mb-1" />
+                        <Skeleton className="h-4 w-8" />
+                      </div>
+                      <div className="processing-time-stat">
+                        <Skeleton className="h-3 w-16 mb-1" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : Object.keys(rejectReasonsStats).length === 0 ? (
                 <div className="processing-time-empty">Veri mevcut değil.</div>
               ) : (
                 Object.entries(rejectReasonsStats)

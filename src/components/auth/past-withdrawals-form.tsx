@@ -35,8 +35,34 @@ interface TransferHistory {
   transferredAt: string
 }
 
-const fetchPastWithdrawals = async () => {
-  const response = await fetch("/api/withdrawals?status=approved,rejected", { credentials: "include" })
+const fetchPastWithdrawals = async (
+  page: number = 0, 
+  take: number = 50,
+  filters: {
+    playerFullname?: string;
+    method?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    handler?: string;
+    note?: string;
+    status?: string;
+  } = {}
+) => {
+  const params = new URLSearchParams({
+    status: filters.status || 'approved,rejected',
+    page: page.toString(),
+    take: take.toString()
+  })
+  
+
+  if (filters.playerFullname) params.append('playerFullname', filters.playerFullname);
+  if (filters.method && filters.method !== 'yontem') params.append('method', filters.method);
+  if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+  if (filters.dateTo) params.append('dateTo', filters.dateTo);
+  if (filters.handler && filters.handler !== 'yetkili') params.append('handler', filters.handler);
+  if (filters.note && filters.note !== 'note') params.append('note', filters.note);
+  
+  const response = await fetch(`/api/withdrawals?${params.toString()}`, { credentials: "include" })
   if (!response.ok) {
     const errorText = await response.text()
     throw new Error(`Veri çekme hatası: ${response.status} ${errorText}`)
@@ -66,30 +92,48 @@ const fetchTransferHistory = async (withdrawalId: number): Promise<TransferHisto
 }
 
 export default function PastWithdrawalsPage() {
-  const {
-    data: pastWithdrawals = [],
-    isLoading,
-    error,
-  } = useQuery<Withdrawal[]>({
-    queryKey: ["pastWithdrawals"],
-    queryFn: fetchPastWithdrawals,
-    refetchOnWindowFocus: false,
-  })
-
-  const [playerUsernameFilter, setPlayerUsernameFilter] = useState("")
-  const [methodFilter, setMethodFilter] = useState("yontem")
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+  const [currentPage, setCurrentPage] = useState(0)
+  const [rowsPerPage] = useState(50)
+  
+  const [playerUsernameInput, setPlayerUsernameInput] = useState("")
+  const [methodInput, setMethodInput] = useState("yontem")
+  const [dateRangeInput, setDateRangeInput] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
   })
-  const [handlerFilter, setHandlerFilter] = useState("yetkili")
-  const [noteFilter, setNoteFilter] = useState("note")
-  const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "rejected">("all")
+  const [handlerInput, setHandlerInput] = useState("yetkili")
+  const [noteInput, setNoteInput] = useState("note")
+  const [statusInput, setStatusInput] = useState<"all" | "approved" | "rejected">("all")
+  
+  const [activeFilters, setActiveFilters] = useState({
+    playerFullname: "",
+    method: "yontem",
+    dateFrom: undefined as string | undefined,
+    dateTo: undefined as string | undefined,
+    handler: "yetkili",
+    note: "note",
+    status: undefined as string | undefined
+  })
+  
+  const {
+    data: apiResponse,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: [
+      "pastWithdrawals", 
+      currentPage, 
+      rowsPerPage, 
+      activeFilters
+    ],
+    queryFn: () => fetchPastWithdrawals(currentPage, rowsPerPage, activeFilters),
+    refetchOnWindowFocus: false,
+  })
+
+  const pastWithdrawals = apiResponse?.data || []
+  const pagination = apiResponse?.pagination
   const [filteredWithdrawals, setFilteredWithdrawals] = useState<Withdrawal[]>([])
   const [mounted, setMounted] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [rowsPerPage] = useState(20)
-  const [isFiltered, setIsFiltered] = useState(false)
 
   const [isLoadingTransfers, setIsLoadingTransfers] = useState<{ [key: number]: boolean }>({})
   const [transferErrors, setTransferErrors] = useState<{ [key: number]: string | null }>({})
@@ -113,99 +157,106 @@ export default function PastWithdrawalsPage() {
   }
 
   const applyFilters = () => {
-    const filtered = pastWithdrawals.filter((w) => {
-      if (playerUsernameFilter && !w.playerFullname.toLowerCase().includes(playerUsernameFilter.toLowerCase())) {
-        return false
-      }
-
-      if (methodFilter !== "yontem" && !w.method.toLowerCase().includes(methodFilter.toLowerCase())) {
-        return false
-      }
-
-      if (dateRange.from || dateRange.to) {
-        if (!w.concludedAt) return false
-        const concludedDate = new Date(w.concludedAt)
-        const filterStart = dateRange.from ? startOfDay(dateRange.from) : new Date(0)
-        const filterEnd = dateRange.to ? endOfDay(dateRange.to) : new Date()
-        if (concludedDate < filterStart || concludedDate > filterEnd) {
-          return false
-        }
-      }
-
-      if (
-        handlerFilter !== "yetkili" &&
-        (!w.handlerUsername || !w.handlerUsername.toLowerCase().includes(handlerFilter.toLowerCase()))
-      ) {
-        return false
-      }
-
-      if (noteFilter !== "note" && !w.note.toLowerCase().includes(noteFilter.toLowerCase())) {
-        return false
-      }
-
-      if (statusFilter !== "all" && w.withdrawalStatus !== statusFilter) {
-        return false
-      }
-
-      return true
+    let dateFrom: string | undefined = undefined
+    let dateTo: string | undefined = undefined
+    
+    if (dateRangeInput.from) {
+      const startOfDay = new Date(dateRangeInput.from)
+      startOfDay.setHours(0, 0, 0, 0) 
+      dateFrom = startOfDay.toISOString()
+    }
+    
+    if (dateRangeInput.to) {
+      const endOfDay = new Date(dateRangeInput.to)
+      endOfDay.setHours(23, 59, 59, 999) 
+      dateTo = endOfDay.toISOString()
+    }
+    
+    setActiveFilters({
+      playerFullname: playerUsernameInput,
+      method: methodInput,
+      dateFrom,
+      dateTo,
+      handler: handlerInput,
+      note: noteInput,
+      status: statusInput === 'all' ? undefined : statusInput
     })
-
-    setFilteredWithdrawals(filtered)
-    setCurrentPage(1)
-    setIsFiltered(true)
+    setCurrentPage(0)
   }
 
-  const handleExcelDownload = () => {
-    const data = isFiltered ? filteredWithdrawals : paginatedWithdrawals
-    const formattedData = data.map((withdrawal) => ({
-      ID: withdrawal.playerUsername,
-      Müşteri: withdrawal.playerFullname,
-      Yöntem: withdrawal.method,
-      Miktar: `${withdrawal.amount} TL`,
-      "Talep Tarihi": format(new Date(withdrawal.requestedAt), "dd.MM.yy HH:mm:ss"),
-      "Kapanma Tarihi": withdrawal.concludedAt
-        ? format(new Date(withdrawal.concludedAt), "dd-MM-yy HH:mm:ss")
-        : "Bilinmiyor",
-      "Kapanma Süresi": calculateDuration(withdrawal.requestedAt, withdrawal.concludedAt),
-      Yetkili: withdrawal.handlerUsername || "Bilinmiyor",
-      Not: withdrawal.note,
-      Durum: withdrawal.withdrawalStatus === "approved" ? "Onaylandı" : "Reddedildi",
-    }))
+  const handleExcelDownload = async () => {
+    try {
+      const params = new URLSearchParams({
+        status: activeFilters.status || 'approved,rejected',
+        export: 'true'
+      })
+      
+      if (activeFilters.playerFullname) params.append('playerFullname', activeFilters.playerFullname);
+      if (activeFilters.method && activeFilters.method !== 'yontem') params.append('method', activeFilters.method);
+      if (activeFilters.dateFrom) params.append('dateFrom', activeFilters.dateFrom);
+      if (activeFilters.dateTo) params.append('dateTo', activeFilters.dateTo);
+      if (activeFilters.handler && activeFilters.handler !== 'yetkili') params.append('handler', activeFilters.handler);
+      if (activeFilters.note && activeFilters.note !== 'note') params.append('note', activeFilters.note);
+      
+      const response = await fetch(`/api/withdrawals?${params.toString()}`, { credentials: "include" })
+      if (!response.ok) {
+        throw new Error(`Export hatası: ${response.status}`)
+      }
+      
+      const exportData = await response.json()
+      const data = exportData.data || []
+      
+      const formattedData = data.map((withdrawal: Withdrawal) => ({
+        ID: withdrawal.playerUsername,
+        Müşteri: withdrawal.playerFullname,
+        Yöntem: withdrawal.method,
+        Miktar: `${withdrawal.amount} TL`,
+        "Talep Tarihi": format(new Date(withdrawal.requestedAt), "dd.MM.yy HH:mm:ss"),
+        "Kapanma Tarihi": withdrawal.concludedAt
+          ? format(new Date(withdrawal.concludedAt), "dd-MM-yy HH:mm:ss")
+          : "Bilinmiyor",
+        "Kapanma Süresi": calculateDuration(withdrawal.requestedAt, withdrawal.concludedAt),
+        Yetkili: withdrawal.handlerUsername || "Bilinmiyor",
+        Not: withdrawal.note,
+        Durum: withdrawal.withdrawalStatus === "approved" ? "Onaylandı" : "Reddedildi",
+      }))
 
-    const worksheet = XLSX.utils.json_to_sheet(formattedData)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Geçmiş Çekim Talepleri")
-    XLSX.writeFile(workbook, "gecmis_cekim_talepleri.xlsx")
+      const worksheet = XLSX.utils.json_to_sheet(formattedData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Geçmiş Çekim Talepleri")
+      XLSX.writeFile(workbook, "gecmis_cekim_talepleri.xlsx")
+    } catch (error) {
+      console.error('Excel export hatası:', error)
+      alert('Excel export sırasında hata oluştu')
+    }
   }
 
   const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
+    if (page >= 0 && page < (pagination?.totalPages || 1)) {
       setCurrentPage(page)
     }
   }
 
-  const totalPages = isFiltered ? 1 : Math.ceil(filteredWithdrawals.length / rowsPerPage)
-  const paginatedWithdrawals = isFiltered
-    ? filteredWithdrawals
-    : filteredWithdrawals.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+  const totalPages = pagination?.totalPages || 1
+  const paginatedWithdrawals = pastWithdrawals 
 
   const getPageNumbers = () => {
     const maxPagesToShow = 20
     const pages = []
 
     if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) {
+      for (let i = 0; i < totalPages; i++) {
         pages.push(i)
       }
       return pages
     }
 
-    const startPage = Math.max(2, currentPage - 2)
-    const endPage = Math.min(totalPages - 1, currentPage + 2)
+    const startPage = Math.max(1, currentPage - 2)
+    const endPage = Math.min(totalPages - 2, currentPage + 2)
 
-    pages.push(1)
+    pages.push(0)
 
-    if (startPage > 2) {
+    if (startPage > 1) {
       pages.push("...")
     }
 
@@ -213,12 +264,12 @@ export default function PastWithdrawalsPage() {
       pages.push(i)
     }
 
-    if (endPage < totalPages - 1) {
+    if (endPage < totalPages - 2) {
       pages.push("...")
     }
 
     if (totalPages > 1) {
-      pages.push(totalPages)
+      pages.push(totalPages - 1)
     }
 
     return pages
@@ -248,15 +299,6 @@ export default function PastWithdrawalsPage() {
 
   if (!mounted) return null
 
-  if (isLoading) {
-    return <LoadingSpinner message="Geçmiş çekim talepleri yükleniyor..." />
-  }
-
-  if (error) {
-    console.error("useQuery hata:", error)
-    return <div className="text-destructive text-center">Hata: {(error as Error).message}</div>
-  }
-
   console.log("paginatedWithdrawals:", paginatedWithdrawals)
 
   return (
@@ -268,14 +310,14 @@ export default function PastWithdrawalsPage() {
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 placeholder="Üye Adı"
-                value={playerUsernameFilter}
-                onChange={(e) => setPlayerUsernameFilter(e.target.value)}
+                value={playerUsernameInput}
+                onChange={(e) => setPlayerUsernameInput(e.target.value)}
                 className="w-full h-9 pl-10"
               />
             </div>
           </div>
           <div className="text-center">
-            <Select onValueChange={setMethodFilter} defaultValue="yontem">
+            <Select onValueChange={setMethodInput} value={methodInput}>
               <SelectTrigger className="w-full h-10">
                 <SelectValue placeholder="Yöntem seçin" />
               </SelectTrigger>
@@ -305,27 +347,26 @@ export default function PastWithdrawalsPage() {
                   variant="outline"
                   className={cn(
                     "w-full h-9 justify-start text-left font-normal",
-                    !dateRange.from && !dateRange.to && "text-muted-foreground",
+                    !dateRangeInput.from && !dateRangeInput.to && "text-muted-foreground",
                   )}
                 >
                   <FiCalendar className="" />
                   <span className="flex-1">
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        `${format(dateRange.from, "dd.MM.yy")} - ${format(dateRange.to, "dd.MM.yy")}`
+                    {dateRangeInput.from ? (
+                      dateRangeInput.to ? (
+                        `${format(dateRangeInput.from, "dd.MM.yy")} - ${format(dateRangeInput.to, "dd.MM.yy")}`
                       ) : (
-                        `${format(dateRange.from, "dd.MM.yy")} -`
+                        `${format(dateRangeInput.from, "dd.MM.yy")} -`
                       )
                     ) : (
                       <span>Tarih Aralığı Seçin</span>
                     )}
                   </span>
-                  {(dateRange.from || dateRange.to) && (
+                  {(dateRangeInput.from || dateRangeInput.to) && (
                     <span
                       onClick={(e) => {
                         e.stopPropagation()
-                        setDateRange({ from: undefined, to: undefined })
-                        setIsFiltered(false)
+                        setDateRangeInput({ from: undefined, to: undefined })
                       }}
                       className="ml-0 cursor-pointer text-muted-foreground hover:text-destructive"
                     >
@@ -337,15 +378,15 @@ export default function PastWithdrawalsPage() {
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="range"
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                  selected={{ from: dateRangeInput.from, to: dateRangeInput.to }}
+                  onSelect={(range) => setDateRangeInput({ from: range?.from, to: range?.to })}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
           </div>
           <div className="text-center">
-            <Select onValueChange={setHandlerFilter} defaultValue="yetkili">
+            <Select onValueChange={setHandlerInput} value={handlerInput}>
               <SelectTrigger className="w-full h-10">
                 <SelectValue placeholder="Yetkili" />
               </SelectTrigger>
@@ -371,7 +412,7 @@ export default function PastWithdrawalsPage() {
             </Select>
           </div>
           <div className="text-center">
-            <Select onValueChange={setNoteFilter} defaultValue="note">
+            <Select onValueChange={setNoteInput} value={noteInput}>
               <SelectTrigger className="w-full h-10">
                 <SelectValue placeholder="Not seçin" />
               </SelectTrigger>
@@ -382,8 +423,8 @@ export default function PastWithdrawalsPage() {
           </div>
           <div className="text-center">
             <Select
-              onValueChange={(value: "all" | "approved" | "rejected") => setStatusFilter(value)}
-              defaultValue="all"
+              onValueChange={(value: "all" | "approved" | "rejected") => setStatusInput(value)}
+              value={statusInput}
             >
               <SelectTrigger className="w-full h-10">
                 <SelectValue placeholder="Tümü" />
@@ -432,14 +473,26 @@ export default function PastWithdrawalsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedWithdrawals.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={11} className="text-center py-8">
+                  <LoadingSpinner message="Veriler yükleniyor..." size="sm" />
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={11} className="text-center py-3 text-sm text-destructive">
+                  Hata: {(error as Error).message}
+                </TableCell>
+              </TableRow>
+            ) : paginatedWithdrawals.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} className="text-center py-3 text-sm text-muted-foreground">
                   Geçmiş çekim talebi mevcut değildir.
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedWithdrawals.map((withdrawal) => {
+              paginatedWithdrawals.map((withdrawal: Withdrawal) => {
                 console.log(`withdrawal id: ${withdrawal.id}, hasTransfers: ${withdrawal.hasTransfers}`)
                 const requestedAt = new Date(withdrawal.requestedAt)
                 const concludedAt = withdrawal.concludedAt ? new Date(withdrawal.concludedAt) : null
@@ -552,12 +605,12 @@ export default function PastWithdrawalsPage() {
             )}
           </TableBody>
         </Table>
-        {!isFiltered && (
+        {pagination && pagination.totalPages > 1 && (
           <div className="flex justify-center mt-4">
             <div className="inline-flex items-center rounded-md border border-[color:var(--border)] overflow-hidden">
               <Button
                 onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
+                disabled={currentPage === 0}
                 variant="ghost"
                 className="h-10 px-4 py-2 text-sm font-medium border-r border-[color:var(--border)] rounded-none hover:bg-[color:var(--secondary)] hover:text-[color:var(--secondary-foreground)]"
               >
@@ -582,7 +635,7 @@ export default function PastWithdrawalsPage() {
               ))}
               <Button
                 onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                disabled={currentPage >= totalPages - 1}
                 variant="ghost"
                 className="h-10 px-4 py-2 text-sm font-medium rounded-none hover:bg-[color:var(--secondary)] hover:text-[color:var(--secondary-foreground)]"
               >

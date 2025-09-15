@@ -70,7 +70,7 @@ export function Navbar() {
 
   if (currentUserLoading) {
     return (
-              <LoadingSpinner message="Yükleniyor..." size="sm" />
+      <LoadingSpinner message="Yükleniyor..." size="sm" />
     )
   }
 
@@ -106,7 +106,7 @@ export function Navbar() {
         <div className="flex items-center justify-center space-x-4">
           {navItems.map((item) => {
 
-            if((item.name === "Personeller" || item.name === "Log Kayıtları" || item.name === "Dashboard" || item.name === "Raporlar") && !canSeeUsers) {
+            if ((item.name === "Personeller" || item.name === "Log Kayıtları" || item.name === "Dashboard" || item.name === "Raporlar") && !canSeeUsers) {
               return null
             }
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)

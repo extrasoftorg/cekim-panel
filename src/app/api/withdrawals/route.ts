@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/db/index';
 import { withdrawalsTable, usersTable } from '@/db/schema';
-import { eq, or, desc, sql } from 'drizzle-orm';
+import { eq, or, desc, sql, and, like, gte, lte } from 'drizzle-orm';
 import redis from '@/db/redis';
 import { subHours } from 'date-fns';
 import { 
@@ -99,8 +99,20 @@ const autoEvaluationWithdrawalSchema = z.object({
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    
+    const isExport = searchParams.get('export') === 'true';
+    const take = isExport ? 10000 : Math.min(parseInt(searchParams.get('take') || '50'), 100);
+    const page = isExport ? 0 : Math.max(parseInt(searchParams.get('page') || '0'), 0);
+    const offset = page * take;
+    
+    const playerFullname = searchParams.get('playerFullname') || '';
+    const method = searchParams.get('method') || '';
+    const dateFrom = searchParams.get('dateFrom') || '';
+    const dateTo = searchParams.get('dateTo') || '';
+    const handler = searchParams.get('handler') || '';
+    const note = searchParams.get('note') || '';
+    
     const statusParam = searchParams.get('status') || '';
-
     const statuses = statusParam.split(',').map(s => s.trim());
     const validStatuses = ['pending', 'approved', 'rejected'] as const;
     type ValidStatus = typeof validStatuses[number];
@@ -111,8 +123,39 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Geçersiz veya eksik durum' }, { status: 400 });
     }
 
+    const conditions = [];
+    
     const statusConditions = filteredStatuses.map(status => eq(withdrawalsTable.withdrawalStatus, status));
-    const whereCondition = or(...statusConditions);
+    conditions.push(or(...statusConditions));
+    
+    if (playerFullname) {
+      conditions.push(eq(withdrawalsTable.playerFullname, playerFullname));
+    }
+    if (method && method !== 'yontem') {
+      conditions.push(eq(withdrawalsTable.method, method));
+    }
+    if (dateFrom) {
+      conditions.push(gte(withdrawalsTable.concludedAt, new Date(dateFrom)));
+    }
+    if (dateTo) {
+      conditions.push(lte(withdrawalsTable.concludedAt, new Date(dateTo)));
+    }
+    if (handler && handler !== 'yetkili') {
+      conditions.push(like(usersTable.username, `%${handler}%`));
+    }
+    if (note && note !== 'note') {
+      conditions.push(like(withdrawalsTable.note, `%${note}%`));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const totalCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(withdrawalsTable)
+      .leftJoin(usersTable, eq(withdrawalsTable.handlingBy, usersTable.id))
+      .where(whereCondition);
+    
+    const totalCount = totalCountResult[0]?.count || 0;
 
     const withdrawals = await db
       .select({
@@ -129,14 +172,44 @@ export async function GET(request: Request) {
         withdrawalStatus: withdrawalsTable.withdrawalStatus,
         handlingBy: withdrawalsTable.handlingBy,
         handlerUsername: usersTable.username,
-        hasTransfers: sql<boolean>`(SELECT COUNT(*) FROM withdrawal_transfers WHERE withdrawal_transfers.withdrawal_id = ${withdrawalsTable.id}) > 0`.mapWith(Boolean),
+        hasTransfers: sql<boolean>`COALESCE(transfer_counts.count, 0) > 0`.mapWith(Boolean),
       })
       .from(withdrawalsTable)
       .leftJoin(usersTable, eq(withdrawalsTable.handlingBy, usersTable.id))
+      .leftJoin(
+        sql`(
+          SELECT 
+            withdrawal_id, 
+            COUNT(*) as count 
+          FROM withdrawal_transfers 
+          GROUP BY withdrawal_id
+        ) as transfer_counts`,
+        sql`transfer_counts.withdrawal_id = ${withdrawalsTable.id}`
+      )
       .where(whereCondition)
-      .orderBy(desc(withdrawalsTable.concludedAt));
+      .orderBy(desc(withdrawalsTable.concludedAt))
+      .limit(take)
+      .offset(offset);
 
-    return NextResponse.json(withdrawals);
+    const hasPaginationParams = searchParams.has('take') || searchParams.has('page');
+    
+    if (isExport) {
+      return NextResponse.json({
+        data: withdrawals
+      });
+    } else if (hasPaginationParams) {
+      return NextResponse.json({
+        data: withdrawals,
+        pagination: {
+          page,
+          take,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / take)
+        }
+      });
+    } else {
+      return NextResponse.json(withdrawals);
+    }
   } catch (error) {
     return NextResponse.json({ error: 'Bir hata oluştu' }, { status: 500 });
   }
