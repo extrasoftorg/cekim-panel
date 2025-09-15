@@ -26,6 +26,10 @@ import { toast } from "sonner"
 
 function translateRejectReason(reason: string): string {
   switch (reason) {
+    case "uye_iptali":
+      return "Üye Talep İptali";
+    case "diger":
+      return "Diğer Sebepler";
     case "anapara_cevrim":
       return "Anapara Eksik Çevrim";
     case "acik_bonus_cevrim":
@@ -70,10 +74,10 @@ function translateRejectReason(reason: string): string {
       return "Hediye Bonus Suistimali";
     case "yontem_sorunu":
       return "Yöntem Sorunu";
-    case "sekiz_saatte_cekim":
-      return "8 Saatte Bir Çekim";
     case "tc_hata":
-      return "TC Hata";
+      return "TC Bilgileri Hatalı";
+    case "sekiz_saatte_cekim":
+      return "Çekim Saat Sınırı";
     case "yeni_gun":
       return "Yeni Gün";
     case "ikiyuztl_alt":
@@ -108,11 +112,13 @@ const rejectReasons = [
   "deneme_suistimal",
   "hediye_suistimal",
   "yontem_sorunu",
-  "sekiz_saatte_cekim",
   "tc_hata",
+  "sekiz_saatte_cekim",
   "yeni_gun",
   "ikiyuztl_alt",
   "on_katlari",
+  "uye_iptali",
+  "diger",
 ]
 
 interface Report {
