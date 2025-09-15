@@ -2,7 +2,6 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import redis from '@/db/redis';
 import { getCurrentUser } from "@/lib/auth";
 import { db } from '@/db';
 import { withdrawalsTable, usersTable } from '@/db/schema';
@@ -31,7 +30,6 @@ export async function GET(request: Request) {
             const start = new Date(startDate);
             const end = new Date(endDate);
 
-
             if (start > end) {
                 return NextResponse.json({ success: false, error: 'Başlangıç tarihi bitiş tarihinden sonra olamaz' }, { status: 400 });
             }
@@ -39,8 +37,13 @@ export async function GET(request: Request) {
             // Tarih filtresi varsa PostgreSQL'den hesapla
             return await getStatsFromPostgreSQL(start, end);
         } else {
-            // Tarih filtresi yoksa Redis'ten al (mevcut hızlı yöntem)
-            return await getStatsFromRedis();
+            const today = new Date();
+            const startOfDay = new Date(today);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(today);
+            endOfDay.setHours(23, 59, 59, 999);
+            
+            return await getStatsFromPostgreSQL(startOfDay, endOfDay);
         }
 
     } catch (error) {
@@ -56,84 +59,6 @@ export async function GET(request: Request) {
     }
 }
 
-// Redis'ten istatistikleri al (mevcut hızlı yöntem)
-async function getStatsFromRedis() {
-    const globalStats = await redis.hgetall('global:statistics');
-    const totalWithdrawals = parseInt(globalStats.totalWithdrawals || '0');
-    const totalApproved = parseInt(globalStats.totalApproved || '0');
-    const totalRejected = parseInt(globalStats.totalRejected || '0');
-    const totalManuelApproved = parseInt(globalStats.totalManuelApproved || '0');
-    const totalManuelRejected = parseInt(globalStats.totalManuelRejected || '0');
-    const totalPaidAmount = parseFloat(globalStats.totalPaidAmount || '0');
-
-    const botStats = await redis.hgetall(`user:bbe5c3c2-812d-4795-a87b-e01b859e13e4:statistics`);
-    const botApproved = parseInt(botStats.approved || '0');
-    const botRejected = parseInt(botStats.rejected || '0');
-
-    const approvalRate = totalWithdrawals > 0 ? (totalApproved / totalWithdrawals) * 100 : 0;
-
-    const rejectReasonKeys = await redis.keys('global:rejectReason:*');
-    const rejectReasonsStats: { [key: string]: { count: number; totalAmount: number } } = {};
-
-    for (const key of rejectReasonKeys) {
-        const stats = await redis.hgetall(key);
-        const reason = key.split(':')[2]; 
-        rejectReasonsStats[reason] = {
-            count: parseInt(stats.count || '0'),
-            totalAmount: parseFloat(stats.totalAmount || '0'),
-        };
-    }
-
-    const userKeys = await redis.keys('user:*:statistics');
-    const fastestApprovers = [];
-    const fastestRejecters = [];
-
-    for (const key of userKeys) {
-        const stats = await redis.hgetall(key);
-        const approved = parseInt(stats.approved || '0') + parseInt(stats.manualApproved || '0');
-        const rejected = parseInt(stats.rejected || '0') + parseInt(stats.manualRejected || '0');
-        const avgApprovalDuration = parseFloat(stats.avgApprovalDuration || '0');
-        const avgRejectionDuration = parseFloat(stats.avgRejectionDuration || '0');
-        const handlerUsername = stats.handlerUsername || key.split(':')[1];
-
-        // En hızlı onay verenler
-        if (approved > 0 && avgApprovalDuration > 0) {
-            fastestApprovers.push({
-                handlerUsername,
-                avgApprovalDuration,
-            });
-        }
-
-        // En hızlı ret verenler
-        if (rejected > 0 && avgRejectionDuration > 0) {
-            fastestRejecters.push({
-                handlerUsername,
-                avgRejectionDuration,
-            });
-        }
-    }
-
-    fastestApprovers.sort((a, b) => a.avgApprovalDuration - b.avgApprovalDuration).slice(0, 5);
-    fastestRejecters.sort((a, b) => a.avgRejectionDuration - b.avgRejectionDuration).slice(0, 5);
-
-    return NextResponse.json({
-        success: true,
-        data: {
-            totalWithdrawals,
-            totalApproved,
-            totalRejected,
-            totalManuelApproved,
-            totalManuelRejected,
-            totalPaidAmount,
-            approvalRate,
-            fastestApprovers,
-            fastestRejecters,
-            rejectReasonsStats,
-            botApproved,
-            botRejected,
-        }
-    }, { status: 200 });
-}
 
 async function getStatsFromPostgreSQL(startDate: Date, endDate: Date) {
     const BOT_USER_ID = 'bbe5c3c2-812d-4795-a87b-e01b859e13e4';
@@ -312,7 +237,14 @@ export async function POST(request: Request) {
             
             return await getStatsFromPostgreSQL(start, end);
         } else {
-            return await getStatsFromRedis();
+            // Tarih filtresi yoksa bugünün verilerini PostgreSQL'den al
+            const today = new Date();
+            const startOfDay = new Date(today);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(today);
+            endOfDay.setHours(23, 59, 59, 999);
+            
+            return await getStatsFromPostgreSQL(startOfDay, endOfDay);
         }
 
     } catch (error) {

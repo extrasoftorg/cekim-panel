@@ -391,6 +391,31 @@ export function DashboardForm() {
     endDate: undefined,
   })
 
+  useEffect(() => {
+    if (queryParams.startDate && queryParams.endDate) {
+      setDateRange({
+        from: new Date(queryParams.startDate),
+        to: new Date(queryParams.endDate),
+      })
+    }
+  }, [queryParams.startDate, queryParams.endDate])
+
+  useEffect(() => {
+    if (isClient && !queryParams.startDate && !queryParams.endDate) {
+      const today = new Date()
+      const startOfDay = new Date(today)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(today)
+      endOfDay.setHours(23, 59, 59, 999)
+      
+      setQueryParams({
+        startDate: startOfDay.toISOString(),
+        endDate: endOfDay.toISOString(),
+      })
+      setIsFiltered(true)
+    }
+  }, [isClient, queryParams.startDate, queryParams.endDate])
+
   useLayoutEffect(() => {
     setIsClient(true)
   }, [])
