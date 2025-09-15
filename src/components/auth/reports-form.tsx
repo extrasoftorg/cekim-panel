@@ -143,7 +143,11 @@ const fetchReports = async (): Promise<ReportsResponse> => {
   if (!response.ok) {
     throw new Error(`Reports alınamadı: ${response.status}`)
   }
-  return response.json()
+  const reports = await response.json()
+  
+  return reports.sort((a: Report, b: Report) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
 }
 
 const fetchReportsDownload = async (reportId: string): Promise<Report> => {
@@ -441,7 +445,7 @@ export default function ReportsForm() {
           <Table className="table-auto table-compact">
             <TableHeader className="table-header">
               <TableRow>
-                <TableHead className="table-head">Kod Adı</TableHead>
+                <TableHead className="table-head">ID</TableHead>
                 <TableHead className="table-head">Tarih</TableHead>
                 <TableHead className="table-head">Durum</TableHead>
               </TableRow>
@@ -468,31 +472,36 @@ export default function ReportsForm() {
               ) : (
                 data.map((report) => (
                   <TableRow key={report.id}>
-                    <TableCell className="table-cell">
-                      {report.status === "completed" ? (
-                        <span
-                          className="text-blue-400 cursor-pointer hover:text-blue-500 font-semibold"
-                          onClick={async () => {
-                            try {
-                              const reportDetail = await fetchReportsDownload(report.id);
-                              const downloadUrl = reportDetail.downloadUrl;
-                              if (downloadUrl) {
-                                const downloadWindow = window.open(downloadUrl, "_blank");
-                                if (downloadWindow) {
-                                  downloadWindow.focus();
+                    <TableCell className="table-cell text-center">
+                      <div className="max-w-[200px] truncate mx-auto">
+                        {report.status === "completed" ? (
+                          <span
+                            className="text-blue-400 cursor-pointer hover:text-blue-500 font-semibold"
+                            title={report.id}
+                            onClick={async () => {
+                              try {
+                                const reportDetail = await fetchReportsDownload(report.id);
+                                const downloadUrl = reportDetail.downloadUrl;
+                                if (downloadUrl) {
+                                  const downloadWindow = window.open(downloadUrl, "_blank");
+                                  if (downloadWindow) {
+                                    downloadWindow.focus();
+                                  }
                                 }
+                              } catch (error) {
+                                console.error("Hata:", error);
+                                alert("Rapor detayları alınamadı. Lütfen tekrar deneyin.");
                               }
-                            } catch (error) {
-                              console.error("Hata:", error);
-                              alert("Rapor detayları alınamadı. Lütfen tekrar deneyin.");
-                            }
-                          }}
-                        >
-                          {report.codename}
-                        </span>
-                      ) : (
-                        report.codename
-                      )}
+                            }}
+                          >
+                            {report.id.substring(0, 8)}...
+                          </span>
+                        ) : (
+                          <span title={report.id}>
+                            {report.id.substring(0, 8)}...
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="table-cell">
                       {format(new Date(report.createdAt), 'dd.MM.yy HH:mm')}
