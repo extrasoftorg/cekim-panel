@@ -9,7 +9,7 @@ export async function GET(
   const { reportId } = await context.params;
 
   try {
-    const response = await fetch(`https://report.cekim.golexe.com/v1/reports/${reportId}`);
+    const response = await fetch(`https://report.withdrawal.exgoapp.com/v1/reports/${reportId}`);
 
     if (!response.ok) {
       return NextResponse.json(

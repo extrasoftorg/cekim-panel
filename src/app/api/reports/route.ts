@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { requestedBy, status } = body;
+    const { requestedBy, status, rejectReasons, fromDate, toDate } = body;
 
     if (!requestedBy) {
       return NextResponse.json(
@@ -42,14 +42,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const apiBody: { requestedBy: string; status?: string } = { requestedBy };
-    if (status && status !== "all") {
+    const apiBody: { 
+      requestedBy: string; 
+      status?: string;
+      rejectReasons?: string[];
+      fromDate?: string;
+      toDate?: string;
+    } = { requestedBy };
+
+    if (status && status !== "all" && ["pending", "approved", "rejected"].includes(status)) {
       apiBody.status = status;
+    }
+
+    if (rejectReasons && Array.isArray(rejectReasons) && rejectReasons.length > 0) {
+      apiBody.rejectReasons = rejectReasons;
+    }
+
+    if (fromDate) {
+      apiBody.fromDate = fromDate;
+    }
+    if (toDate) {
+      apiBody.toDate = toDate;
     }
 
     console.log("Sunucu tarafı rapor oluşturma isteği:", { apiBody });
 
-    const response = await fetch("https://report.cekim.golexe.com/v1/reports", {
+    const response = await fetch("https://report.withdrawal.exgoapp.com/v1/reports", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

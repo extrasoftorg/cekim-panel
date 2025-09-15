@@ -166,10 +166,33 @@ const fetchCurrentUser = async (): Promise<User | null> => {
   return result.data;
 };
 
-const createReport = async (status: string | null, requestedBy: string) => {
-  const body: { requestedBy: string; status?: string } = { requestedBy };
+const createReport = async (
+  status: string | null, 
+  requestedBy: string, 
+  dateRange?: { from: Date | undefined; to: Date | undefined },
+  rejectReasons?: string[]
+) => {
+  const body: { 
+    requestedBy: string; 
+    status?: string;
+    rejectReasons?: string[];
+    fromDate?: string;
+    toDate?: string;
+  } = { requestedBy };
+  
   if (status && status !== "all") {
     body.status = status;
+  }
+
+  if (dateRange?.from) {
+    body.fromDate = dateRange.from.toISOString();
+  }
+  if (dateRange?.to) {
+    body.toDate = dateRange.to.toISOString();
+  }
+
+  if (rejectReasons && rejectReasons.length > 0) {
+    body.rejectReasons = rejectReasons;
   }
 
   console.log("Frontend rapor oluşturma isteği:", { body });
@@ -219,7 +242,7 @@ export default function ReportsForm() {
     to: undefined,
   })
   const [rejectReasonFilter, setRejectReasonFilter] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "rejected">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all")
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null);
   const [isCreatingReport, setIsCreatingReport] = useState(false);
@@ -244,7 +267,9 @@ export default function ReportsForm() {
 
     setIsCreatingReport(true);
     try {
-      await createReport(statusFilter, user.id);
+      const rejectReasonsArray = rejectReasonFilter ? [rejectReasonFilter] : undefined;
+      
+      await createReport(statusFilter, user.id, dateRange, rejectReasonsArray);
       toast.success("Rapor başarıyla oluşturuldu!");
       queryClient.invalidateQueries({ queryKey: ["reports"] });
     } catch (err) {
@@ -373,7 +398,7 @@ export default function ReportsForm() {
           </div>
           <div className="text-center w-full">
             <Select
-              onValueChange={(value: "all" | "approved" | "rejected") => setStatusFilter(value)}
+              onValueChange={(value: "all" | "pending" | "approved" | "rejected") => setStatusFilter(value)}
               defaultValue="all"
             >
               <SelectTrigger className="w-full h-9">
@@ -381,8 +406,9 @@ export default function ReportsForm() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tümü</SelectItem>
-                <SelectItem value="approved">Onay</SelectItem>
-                <SelectItem value="rejected">Ret</SelectItem>
+                <SelectItem value="pending">Bekleyen</SelectItem>
+                <SelectItem value="approved">Onaylanan</SelectItem>
+                <SelectItem value="rejected">Reddedilen</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -394,7 +420,10 @@ export default function ReportsForm() {
                 onClick={handleCreateReport}
               >
                 {isCreatingReport ? (
-                  <LoadingSpinner />
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Oluşturuluyor...</span>
+                  </div>
                 ) : (
                   <>
                     <FiPlus />
