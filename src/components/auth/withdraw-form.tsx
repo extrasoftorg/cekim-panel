@@ -120,6 +120,9 @@ const rejectionCategories: { [key: string]: { [subKey: string]: string[] } | str
   "Üye Talep İptali": [
     "uye_iptali"
   ],
+  "Yeni Gün Talep": [
+    "yeni_gun"
+  ],
 }
 
 // Ret sebeplerini çeviri fonksiyonu
@@ -971,11 +974,35 @@ const SekizSaatteCekimFields: React.FC<{ formValues: FormValues; setFormValues: 
     </div>
   </div>
 );
+
+const YeniGunFields: React.FC<{ formValues: FormValues; setFormValues: React.Dispatch<React.SetStateAction<FormValues>> }> = ({ formValues, setFormValues }) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="additionalInfo" className="text-left">
+        Ek Bilgi
+      </Label>
+      <Textarea
+        id="additionalInfo"
+        name="additionalInfo"
+        value={formValues.additionalInfo || ""}
+        onChange={(e) =>
+          setFormValues((prev) => ({
+            ...prev,
+            additionalInfo: e.target.value,
+          }))
+        }
+        placeholder="Ek Bilgi"
+        className="w-full resize-none"
+      />
+    </div>
+  </div>
+);
 // Component Mapping
 const rejectionFieldComponents = {
   uye_iptali: UyeIptaliFields,
   tc_hata: TcHataFields,
   sekiz_saatte_cekim: SekizSaatteCekimFields,
+  yeni_gun: YeniGunFields,
   anapara_cevrim: AnaparaCevrimFields,
   acik_bonus_cevrim: AcikBonusCevrimFields,
   acik_bahis_cevrim: AcikBahisCevrimFields,
