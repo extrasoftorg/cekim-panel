@@ -184,6 +184,12 @@ export default function PastWithdrawalsPage() {
     setCurrentPage(0)
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      applyFilters()
+    }
+  }
+
   const handleExcelDownload = async () => {
     try {
       const params = new URLSearchParams({
@@ -312,6 +318,7 @@ export default function PastWithdrawalsPage() {
                 placeholder="Üye Adı"
                 value={playerUsernameInput}
                 onChange={(e) => setPlayerUsernameInput(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full h-9 pl-10"
               />
             </div>

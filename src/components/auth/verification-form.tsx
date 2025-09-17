@@ -24,6 +24,7 @@ export default function VerificationPage() {
   const id = searchParams.get('id');
   const [otp, setOtp] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -35,11 +36,26 @@ export default function VerificationPage() {
     e.preventDefault();
     if (!id) return;
 
-    const response = await verifyOtp(id, otp);
-    if (response.success) {
-      router.push('/');
-    } else {
-      setMessage(response.message);
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await verifyOtp(id, otp);
+      if (response.success) {
+        router.push('/');
+      } else {
+        setMessage(response.message);
+      }
+    } catch (error) {
+      setMessage("Doğrulama yapılırken bir hata oluştu.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && otp.length === 6 && !isLoading) {
+      handleSubmit(e as any);
     }
   };
 
@@ -69,14 +85,15 @@ export default function VerificationPage() {
                     setOtp(value)
                   }
                 }}
+                onKeyDown={handleKeyDown}
                 placeholder="6 haneli kodu girin"
                 maxLength={6}
                 className="h-12 text-center text-base font-mono tracking-widest"
                 required
               />
             </div>
-            <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={otp.length !== 6}>
-              Doğrula
+            <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={otp.length !== 6 || isLoading}>
+              {isLoading ? "Doğrulanıyor..." : "Doğrula"}
             </Button>
           </form>
         </CardContent>
