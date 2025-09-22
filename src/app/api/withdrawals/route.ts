@@ -219,6 +219,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
+    console.log('Incoming withdrawal request body:');
+    console.log(JSON.stringify(body, null, 2));
+    
     let isAutoEvaluationRequest = false;
     let validatedData: any;
     
