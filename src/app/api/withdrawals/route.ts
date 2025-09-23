@@ -132,7 +132,7 @@ const autoEvaluationWithdrawalSchema = z.object({
     amount: z.number().positive(),
     createdAt: z.string().refine((val) => !isNaN(Date.parse(val))),
     data: z.record(z.any()),
-  }).optional(),
+  }).optional().nullable(),
 });
 
 export async function GET(request: Request) {
