@@ -12,6 +12,39 @@ import {
   generateAutoEvaluationFactorsCombinedNote 
 } from '@/constants/withdrawal-factors';
 
+function extractTypeAndNoteId(latestPlayerActivity: any): { type: string | null, typeNoteId: string | null } {
+  if (!latestPlayerActivity) {
+    return { type: null, typeNoteId: null };
+  }
+
+  let type = latestPlayerActivity.type || null;
+  if (type === 'correctionUp') {
+    type = 'correction_up';
+  }
+  
+  let typeNoteId: string | null = null;
+
+  if (type === 'bonus' && latestPlayerActivity.data?.partnerId) {
+    typeNoteId = latestPlayerActivity.data.partnerId.toString();
+  }
+  else if (type === 'correction_up' && latestPlayerActivity.data?.note) {
+    typeNoteId = latestPlayerActivity.data.note;
+  }
+  else if (latestPlayerActivity.data) {
+    if (latestPlayerActivity.data.note) {
+      typeNoteId = latestPlayerActivity.data.note;
+    }
+    else if (latestPlayerActivity.data.partnerId) {
+      typeNoteId = latestPlayerActivity.data.partnerId.toString();
+    }
+    else if (latestPlayerActivity.data.name) {
+      typeNoteId = latestPlayerActivity.data.name;
+    }
+  }
+
+  return { type, typeNoteId };
+}
+
 async function assignPersonnelFairly() {
   try {
     const listLength = await redis.llen('active_personnel');
@@ -94,6 +127,12 @@ const autoEvaluationWithdrawalSchema = z.object({
     updatedAt: z.string(),
   })),
   metadata: z.record(z.any()).optional(),
+  latestPlayerActivity: z.object({
+    type: z.enum(['bonus', 'deposit', 'withdrawal', 'cashback', 'correctionUp']),
+    amount: z.number().positive(),
+    createdAt: z.string().refine((val) => !isNaN(Date.parse(val))),
+    data: z.record(z.any()),
+  }).optional(),
 });
 
 export async function GET(request: Request) {
@@ -238,7 +277,9 @@ export async function POST(request: Request) {
     }
 
     if (isAutoEvaluationRequest) {
-      const { withdrawalInfo, evaluationFactors, metadata } = validatedData;
+      const { withdrawalInfo, evaluationFactors, metadata, latestPlayerActivity } = validatedData;
+      
+      const { type, typeNoteId } = extractTypeAndNoteId(latestPlayerActivity);
 
       const BOT_USER_ID = 'bbe5c3c2-812d-4795-a87b-e01b859e13e4';
       const BOT_USERNAME = 'Çekim Botu';
@@ -328,6 +369,8 @@ export async function POST(request: Request) {
           handlingBy: handlingBy,
           assignedTo: withdrawalStatus === 'pending' && handlingBy && handlingBy !== BOT_USER_ID ? handlingBy : null,
           assignedAt: withdrawalStatus === 'pending' && handlingBy && handlingBy !== BOT_USER_ID ? new Date() : null,
+          type: type as any,
+          typeNoteId: typeNoteId,
         })
         .returning();
 

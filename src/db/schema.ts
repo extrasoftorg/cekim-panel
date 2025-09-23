@@ -54,6 +54,14 @@ export const rejectReasonEnum = pgEnum('reject_reason', [
     'diger',
 ])
 
+export const typeEnum = pgEnum('type', [
+    'bonus',
+    'deposit',
+    'withdrawal',
+    'cashback',
+    'correction_up',
+])
+
 export const reportStatusEnum = pgEnum('report_status', ['pending', 'completed', 'failed'])
 
 export const reportsTable = pgTable('reports', {
@@ -92,12 +100,18 @@ export const withdrawalsTable = pgTable("withdrawals", {
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
     withdrawalStatus: withdrawalStatusEnum('withdrawal_status').notNull().default('pending'),
     message: text('message').notNull(),
+    type: typeEnum('type'),
+    typeNoteId: varchar('type_note_id', { length: 255 }),
+    
     handlingBy: uuid('handling_by').references(() => usersTable.id, { onDelete: 'set null' }),
     assignedTo: uuid('assigned_to').references(() => usersTable.id, { onDelete: 'set null' }),
     assignedAt: timestamp('assigned_at', { withTimezone: true }),
 }, (table) => {
     return {
         playerUsernameIndex: index('player_fullname_index').on(table.playerFullname),
+        typeIndex: index('type_index').on(table.type),
+        typeNoteIdIndex: index('type_note_id_index').on(table.typeNoteId),
+        typeAndNoteIdIndex: index('type_and_note_id_index').on(table.type, table.typeNoteId),
     }
 })
 
