@@ -30,17 +30,6 @@ function extractTypeAndNoteId(latestPlayerActivity: any): { type: string | null,
   else if (type === 'correction_up' && latestPlayerActivity.data?.note) {
     typeNoteId = latestPlayerActivity.data.note;
   }
-  else if (latestPlayerActivity.data) {
-    if (latestPlayerActivity.data.note) {
-      typeNoteId = latestPlayerActivity.data.note;
-    }
-    else if (latestPlayerActivity.data.partnerId) {
-      typeNoteId = latestPlayerActivity.data.partnerId.toString();
-    }
-    else if (latestPlayerActivity.data.name) {
-      typeNoteId = latestPlayerActivity.data.name;
-    }
-  }
 
   return { type, typeNoteId };
 }
