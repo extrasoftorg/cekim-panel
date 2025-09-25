@@ -180,7 +180,9 @@ const createReport = async (
   status: string | null, 
   requestedBy: string, 
   dateRange?: { from: Date | undefined; to: Date | undefined },
-  rejectReasons?: string[]
+  rejectReasons?: string[],
+  type?: string | null,
+  typeNoteId?: string
 ) => {
   const body: { 
     requestedBy: string; 
@@ -188,6 +190,8 @@ const createReport = async (
     rejectReasons?: string[];
     fromDate?: string;
     toDate?: string;
+    type?: string;
+    typeNoteId?: string;
   } = { requestedBy };
   
   if (status && status !== "all") {
@@ -203,6 +207,14 @@ const createReport = async (
 
   if (rejectReasons && rejectReasons.length > 0) {
     body.rejectReasons = rejectReasons;
+  }
+
+  if (type && type !== "all") {
+    body.type = type;
+  }
+
+  if (typeNoteId && typeNoteId.trim().length > 0) {
+    body.typeNoteId = typeNoteId.trim();
   }
 
   console.log("Frontend rapor oluşturma isteği:", { body });
@@ -253,6 +265,8 @@ export default function ReportsForm() {
   })
   const [rejectReasonFilter, setRejectReasonFilter] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all")
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const [typeNoteIdFilter, setTypeNoteIdFilter] = useState<string>("")
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null);
   const [isCreatingReport, setIsCreatingReport] = useState(false);
@@ -279,7 +293,7 @@ export default function ReportsForm() {
     try {
       const rejectReasonsArray = rejectReasonFilter ? [rejectReasonFilter] : undefined;
       
-      await createReport(statusFilter, user.id, dateRange, rejectReasonsArray);
+      await createReport(statusFilter, user.id, dateRange, rejectReasonsArray, typeFilter, typeNoteIdFilter);
       toast.success("Rapor başarıyla oluşturuldu!");
       queryClient.invalidateQueries({ queryKey: ["reports"] });
     } catch (err) {
@@ -295,9 +309,9 @@ export default function ReportsForm() {
 
   return (
     <div className="w-full">
-      <div className="glass-effect p-4 mb-4 mx-auto max-w-5xl">
-        <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr] gap-2 justify-items-stretch items-center">
-          <div className="text-center w-full">
+      <div className="glass-effect p-4 mb-4 mx-auto max-w-7xl">
+        <div className="flex flex-row gap-2 items-center">
+          <div className="text-center flex-1">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -342,7 +356,7 @@ export default function ReportsForm() {
               </PopoverContent>
             </Popover>
           </div>
-          <div className="text-center w-full">
+          <div className="text-center flex-1">
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -406,7 +420,7 @@ export default function ReportsForm() {
               </PopoverContent>
             </Popover>
           </div>
-          <div className="text-center w-full">
+          <div className="text-center flex-1">
             <Select
               onValueChange={(value: "all" | "pending" | "approved" | "rejected") => setStatusFilter(value)}
               defaultValue="all"
@@ -415,17 +429,43 @@ export default function ReportsForm() {
                 <SelectValue placeholder="Durum" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tümü</SelectItem>
+                <SelectItem value="all">Çekim Durumu (Tümü)</SelectItem>
                 <SelectItem value="pending">Bekleyen</SelectItem>
                 <SelectItem value="approved">Onaylanan</SelectItem>
                 <SelectItem value="rejected">Reddedilen</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-center w-full">
-            <div className="flex gap-2 w-full justify-between">
+          <div className="text-center flex-1">
+            <Select
+              onValueChange={(value: "all" | "bonus" | "deposit" | "withdrawal" | "cashback" | "correction_up") => setTypeFilter(value === "all" ? null : value)}
+              defaultValue="all"
+            >
+              <SelectTrigger className="w-full h-9">
+                <SelectValue placeholder="Tip" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Son Finansal İşlem (Tümü)</SelectItem>
+                <SelectItem value="bonus">Bonus</SelectItem>
+                <SelectItem value="deposit">Yatırım</SelectItem>
+                <SelectItem value="withdrawal">Çekim</SelectItem>
+                <SelectItem value="cashback">Cashback</SelectItem>
+                <SelectItem value="correction_up">Düzeltme</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-center flex-1">
+            <Input
+              placeholder="Bonus ID / Corr up not'u"
+              value={typeNoteIdFilter}
+              onChange={(e) => setTypeNoteIdFilter(e.target.value)}
+              className="w-full h-9"
+            />
+          </div>
+          <div className="text-center flex-1">
+            <div className="flex gap-2 justify-center">
               <Button
-                className="w-1/2 h-9 bg-primary hover:bg-primary/90 flex items-center justify-center"
+                className="w-full h-9 bg-primary hover:bg-primary/90 flex items-center justify-center"
                 disabled={isCreatingReport} 
                 onClick={handleCreateReport}
               >
@@ -446,7 +486,7 @@ export default function ReportsForm() {
         </div>
       </div>
 
-      <div className="glass-effect p-2 mb-4 mx-auto max-w-5xl">
+      <div className="glass-effect p-2 mb-4 mx-auto max-w-7xl">
         <div className="table-container">
           <Table className="table-auto table-compact">
             <TableHeader className="table-header">

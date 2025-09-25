@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { requestedBy, status, rejectReasons, fromDate, toDate } = body;
+    const { requestedBy, status, rejectReasons, fromDate, toDate, type, typeNoteId } = body;
 
     if (!requestedBy) {
       return NextResponse.json(
@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
       rejectReasons?: string[];
       fromDate?: string;
       toDate?: string;
+      type?: string;
+      typeNoteId?: string;
     } = { requestedBy };
 
     if (status && status !== "all" && ["pending", "approved", "rejected"].includes(status)) {
@@ -65,7 +67,17 @@ export async function POST(req: NextRequest) {
       apiBody.toDate = toDate;
     }
 
+    if (type && ["bonus", "deposit", "withdrawal", "cashback", "correction_up"].includes(type)) {
+      apiBody.type = type;
+    }
+
+    if (typeNoteId && typeof typeNoteId === "string" && typeNoteId.trim().length > 0) {
+      apiBody.typeNoteId = typeNoteId.trim();
+    }
+
     console.log("Sunucu tarafı rapor oluşturma isteği:", { apiBody });
+    console.log("Gelen request body:", JSON.stringify(body, null, 2));
+    console.log("Gönderilen API body:", JSON.stringify(apiBody, null, 2));
 
     const response = await fetch("https://report.withdrawal.exgoapp.com/v1/reports", {
       method: "POST",
@@ -91,6 +103,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("Rapor oluşturma başarılı: İstek gönderildi.");
+    console.log("External API response status:", response.status);
     return NextResponse.json(
       { success: true, message: "Rapor başarıyla oluşturuldu." },
       { status: 200 }
