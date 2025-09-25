@@ -130,7 +130,11 @@ export async function updateWithdrawalStatus(formData: FormData) {
 
     if (additionalInfo && (action === 'reject' || action === 'manuelReject' || action === 'approve' || action === 'manuelApprove')) {
       try {
-        parsedAdditionalInfo = JSON.parse(additionalInfo);
+        try {
+          parsedAdditionalInfo = JSON.parse(additionalInfo);
+        } catch {
+          parsedAdditionalInfo = { additionalInfo: additionalInfo };
+        }
 
         updatedAdditionalInfo = { ...parsedAdditionalInfo };
         const keysToProcess = ['coklu', 'kapaCoklu', 'silCoklu'];
@@ -161,7 +165,7 @@ export async function updateWithdrawalStatus(formData: FormData) {
           combinedNote = additionalText ? (combinedNote ? `${combinedNote} | Ek Bilgi: ${additionalText}` : `Ek Bilgi: ${additionalText}`) : combinedNote;
         }
       } catch (error) {
-        return { success: false, error: 'Ek bilgiler geçersiz JSON formatında' };
+        return { success: false, error: 'Ek bilgiler işlenirken hata oluştu' };
       }
     }
 
