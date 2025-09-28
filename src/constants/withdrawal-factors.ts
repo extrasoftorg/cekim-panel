@@ -31,6 +31,7 @@ export type EvaluationFactor =
   | 'daily_withdrawal_limit_exceeded'
   | 'requires_full_withdrawal'
   | 'payment_method_disabled'
+  | 'exceed_withdrawals_after_last_deposit'
   | 'error_occurred';
 
 
@@ -107,6 +108,7 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'payment_method_disabled': 'Ödeme yöntemi devre dışı. Farklı bir yöntem deneyiniz.',
   'casino_increasing_winning_ratio_exceeded': 'Casino oyunlarında alınan betler sonrası yansıyan kazanç, bet miktarının 2 katından az ve tüm bet işlemlerinin %50si veya daha fazlasını oluşturuyor.',
   'error_occurred': 'Hata oluştu, manuel inceleyiniz.',
+  'exceed_withdrawals_after_last_deposit': 'Art arda 3 adet çekim talebi mevcut.',
   'first_withdrawal': 'İLK ÇEKİM ',
 };
 
