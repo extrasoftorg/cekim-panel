@@ -226,7 +226,7 @@ export function generateFactorNote(factor: EvaluationFactor, metadata?: Record<s
             .replace('{minAmount}', minAmount)
             .replace('{maxAmount}', maxAmount);
         } else {
-          note = `Maximum ${maxAmount} TL çekim talebi oluşturabilirsiniz.`;
+          note = `Maksimum ${maxAmount} TL çekim talebi oluşturabilirsiniz.`;
         }
       }
       break;
