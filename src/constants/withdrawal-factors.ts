@@ -94,7 +94,7 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'unmet_post_deposit_balance_sports_wagering': 'Spor çevrimi 1.5 katının altında.',
   'unmet_post_deposit_balance_casino_wagering': 'Casino çevrimi 1.5 katının altında.',
   'has_active_sport_bets': 'Aktif spor bahsi mevcut.',
-  'invalid_player_identity': 'TC Kimlik numarası hatalı.',
+  'invalid_player_identity': 'TC MANUEL KONTROL EDİNİZ.',
   'invalid_amount': 'Geçersiz çekim tutarı. Miktar 10 ve katları olacak şekilde talep oluşturabilirsiniz.',
   'exceed_player_activity_max_amount': 'Minimum {minAmount} TL, Maksimum {maxAmount} TL çekim talebi oluşturabilirsiniz.',
   'under_player_activity_min_amount': 'Minimum {minAmount} TL, Maksimum {maxAmount} TL çekim talebi oluşturabilirsiniz.',
