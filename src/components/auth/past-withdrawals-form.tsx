@@ -139,6 +139,7 @@ export default function PastWithdrawalsPage() {
   const [transferErrors, setTransferErrors] = useState<{ [key: number]: string | null }>({})
   const [transfersData, setTransfersData] = useState<{ [key: number]: TransferHistory[] }>({})
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null)
+  const [isExcelLoading, setIsExcelLoading] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -191,6 +192,9 @@ export default function PastWithdrawalsPage() {
   }
 
   const handleExcelDownload = async () => {
+    if (isExcelLoading) return; 
+    
+    setIsExcelLoading(true)
     try {
       const params = new URLSearchParams({
         status: activeFilters.status || 'approved,rejected',
@@ -234,6 +238,8 @@ export default function PastWithdrawalsPage() {
     } catch (error) {
       console.error('Excel export hatası:', error)
       alert('Excel export sırasında hata oluştu')
+    } finally {
+      setIsExcelLoading(false)
     }
   }
 
@@ -447,10 +453,19 @@ export default function PastWithdrawalsPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleExcelDownload}
-                className="w-1/2 h-9 bg-green-500 hover:bg-green-600 text-white flex items-center justify-center"
+                disabled={isExcelLoading}
+                className="w-1/2 h-9 bg-green-500 hover:bg-green-600 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <FiDownload />
-                Excel
+                {isExcelLoading ? (
+                  <>
+                    <span className="ml-2">İndiriliyor..</span>
+                  </>
+                ) : (
+                  <>
+                    <FiDownload />
+                    <span className="ml-1">Excel</span>
+                  </>
+                )}
               </Button>
               <Button
                 onClick={applyFilters}

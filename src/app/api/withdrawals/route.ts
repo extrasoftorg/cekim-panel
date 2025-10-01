@@ -129,7 +129,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     
     const isExport = searchParams.get('export') === 'true';
-    const take = isExport ? 10000 : Math.min(parseInt(searchParams.get('take') || '50'), 100);
+    const take = isExport ? 1000000 : Math.min(parseInt(searchParams.get('take') || '50'), 100);
     const page = isExport ? 0 : Math.max(parseInt(searchParams.get('page') || '0'), 0);
     const offset = page * take;
     
@@ -185,39 +185,63 @@ export async function GET(request: Request) {
     
     const totalCount = totalCountResult[0]?.count || 0;
 
-    const withdrawals = await db
-      .select({
-        id: withdrawalsTable.id,
-        playerUsername: withdrawalsTable.playerUsername,
-        playerFullname: withdrawalsTable.playerFullname,
-        note: withdrawalsTable.note,
-        transactionId: withdrawalsTable.transactionId,
-        method: withdrawalsTable.method,
-        amount: withdrawalsTable.amount,
-        requestedAt: withdrawalsTable.requestedAt,
-        concludedAt: withdrawalsTable.concludedAt,
-        message: withdrawalsTable.message,
-        withdrawalStatus: withdrawalsTable.withdrawalStatus,
-        handlingBy: withdrawalsTable.handlingBy,
-        handlerUsername: usersTable.username,
-        hasTransfers: sql<boolean>`COALESCE(transfer_counts.count, 0) > 0`.mapWith(Boolean),
-      })
-      .from(withdrawalsTable)
-      .leftJoin(usersTable, eq(withdrawalsTable.handlingBy, usersTable.id))
-      .leftJoin(
-        sql`(
-          SELECT 
-            withdrawal_id, 
-            COUNT(*) as count 
-          FROM withdrawal_transfers 
-          GROUP BY withdrawal_id
-        ) as transfer_counts`,
-        sql`transfer_counts.withdrawal_id = ${withdrawalsTable.id}`
-      )
-      .where(whereCondition)
-      .orderBy(desc(withdrawalsTable.concludedAt))
-      .limit(take)
-      .offset(offset);
+    const withdrawals = isExport 
+      ? await db
+          .select({
+            id: withdrawalsTable.id,
+            playerUsername: withdrawalsTable.playerUsername,
+            playerFullname: withdrawalsTable.playerFullname,
+            note: withdrawalsTable.note,
+            transactionId: withdrawalsTable.transactionId,
+            method: withdrawalsTable.method,
+            amount: withdrawalsTable.amount,
+            requestedAt: withdrawalsTable.requestedAt,
+            concludedAt: withdrawalsTable.concludedAt,
+            message: withdrawalsTable.message,
+            withdrawalStatus: withdrawalsTable.withdrawalStatus,
+            handlingBy: withdrawalsTable.handlingBy,
+            handlerUsername: usersTable.username,
+            hasTransfers: sql<boolean>`false`.mapWith(Boolean),
+          })
+          .from(withdrawalsTable)
+          .leftJoin(usersTable, eq(withdrawalsTable.handlingBy, usersTable.id))
+          .where(whereCondition)
+          .orderBy(desc(withdrawalsTable.concludedAt))
+          .limit(take)
+          .offset(offset)
+      : await db
+          .select({
+            id: withdrawalsTable.id,
+            playerUsername: withdrawalsTable.playerUsername,
+            playerFullname: withdrawalsTable.playerFullname,
+            note: withdrawalsTable.note,
+            transactionId: withdrawalsTable.transactionId,
+            method: withdrawalsTable.method,
+            amount: withdrawalsTable.amount,
+            requestedAt: withdrawalsTable.requestedAt,
+            concludedAt: withdrawalsTable.concludedAt,
+            message: withdrawalsTable.message,
+            withdrawalStatus: withdrawalsTable.withdrawalStatus,
+            handlingBy: withdrawalsTable.handlingBy,
+            handlerUsername: usersTable.username,
+            hasTransfers: sql<boolean>`COALESCE(transfer_counts.count, 0) > 0`.mapWith(Boolean),
+          })
+          .from(withdrawalsTable)
+          .leftJoin(usersTable, eq(withdrawalsTable.handlingBy, usersTable.id))
+          .leftJoin(
+            sql`(
+              SELECT 
+                withdrawal_id, 
+                COUNT(*) as count 
+              FROM withdrawal_transfers 
+              GROUP BY withdrawal_id
+            ) as transfer_counts`,
+            sql`transfer_counts.withdrawal_id = ${withdrawalsTable.id}`
+          )
+          .where(whereCondition)
+          .orderBy(desc(withdrawalsTable.concludedAt))
+          .limit(take)
+          .offset(offset);
 
     const hasPaginationParams = searchParams.has('take') || searchParams.has('page');
     
