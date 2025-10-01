@@ -1,5 +1,5 @@
 {
-  "id": "c4a0952e-89ba-4372-900e-8b91393b373d",
+  "id": "3d9129dc-2000-48f6-bd40-611e0c90a537",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -383,6 +383,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "type": {
+          "name": "type",
+          "type": "type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type_note_id": {
+          "name": "type_note_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "handling_by": {
           "name": "handling_by",
           "type": "uuid",
@@ -408,6 +421,57 @@
           "columns": [
             {
               "expression": "player_fullname",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "type_index": {
+          "name": "type_index",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "type_note_id_index": {
+          "name": "type_note_id_index",
+          "columns": [
+            {
+              "expression": "type_note_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "type_and_note_id_index": {
+          "name": "type_and_note_id_index",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type_note_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -494,7 +558,9 @@
         "tc_hata",
         "yeni_gun",
         "ikiyuztl_alt",
-        "on_katlari"
+        "on_katlari",
+        "uye_iptali",
+        "diger"
       ]
     },
     "public.report_status": {
@@ -514,6 +580,17 @@
         "cekimSorumlusu",
         "cekimPersoneli",
         "spectator"
+      ]
+    },
+    "public.type": {
+      "name": "type",
+      "schema": "public",
+      "values": [
+        "bonus",
+        "deposit",
+        "withdrawal",
+        "cashback",
+        "correction_up"
       ]
     },
     "public.withdrawal_status": {

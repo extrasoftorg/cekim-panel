@@ -1,7 +1,8 @@
 CREATE TYPE "public"."activity_status" AS ENUM('online', 'away', 'offline');--> statement-breakpoint
-CREATE TYPE "public"."reject_reason" AS ENUM('anapara_cevrim', 'acik_bonus_cevrim', 'acik_bahis_cevrim', 'coklu_hesap', 'ip_coklu', 'ayni_aile_coklu', 'deneme_sinir', 'call_siniri', 'promosyon_sinir', 'yatirim_sinir', 'hediye_sinir', 'bonus_sinir', 'safe_bahis', 'ozel_oyun_kontrol', 'kurma_bahis', 'casino_kurma_bahis', 'bire1_bahis', 'yatirim_bonus_suistimal', 'cashback_suistimal', 'deneme_suistimal', 'hediye_suistimal', 'yontem_sorunu', 'sekiz_saatte_cekim', 'tc_hata', 'yeni_gun', 'ikiyuztl_alt', 'on_katlari');--> statement-breakpoint
+CREATE TYPE "public"."reject_reason" AS ENUM('anapara_cevrim', 'acik_bonus_cevrim', 'acik_bahis_cevrim', 'coklu_hesap', 'ip_coklu', 'ayni_aile_coklu', 'deneme_sinir', 'call_siniri', 'promosyon_sinir', 'yatirim_sinir', 'hediye_sinir', 'bonus_sinir', 'safe_bahis', 'ozel_oyun_kontrol', 'kurma_bahis', 'casino_kurma_bahis', 'bire1_bahis', 'yatirim_bonus_suistimal', 'cashback_suistimal', 'deneme_suistimal', 'hediye_suistimal', 'yontem_sorunu', 'sekiz_saatte_cekim', 'tc_hata', 'yeni_gun', 'ikiyuztl_alt', 'on_katlari', 'uye_iptali', 'diger');--> statement-breakpoint
 CREATE TYPE "public"."report_status" AS ENUM('pending', 'completed', 'failed');--> statement-breakpoint
 CREATE TYPE "public"."role" AS ENUM('admin', 'cekimSorumlusu', 'cekimPersoneli', 'spectator');--> statement-breakpoint
+CREATE TYPE "public"."type" AS ENUM('bonus', 'deposit', 'withdrawal', 'cashback', 'correction_up');--> statement-breakpoint
 CREATE TYPE "public"."withdrawal_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TABLE "reports" (
 	"id" uuid PRIMARY KEY NOT NULL,
@@ -55,6 +56,8 @@ CREATE TABLE "withdrawals" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"withdrawal_status" "withdrawal_status" DEFAULT 'pending' NOT NULL,
 	"message" text NOT NULL,
+	"type" "type",
+	"type_note_id" varchar(255),
 	"handling_by" uuid,
 	"assigned_to" uuid,
 	"assigned_at" timestamp with time zone
@@ -67,4 +70,7 @@ ALTER TABLE "withdrawal_transfers" ADD CONSTRAINT "withdrawal_transfers_transfer
 ALTER TABLE "withdrawals" ADD CONSTRAINT "withdrawals_handling_by_users_id_fk" FOREIGN KEY ("handling_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "withdrawals" ADD CONSTRAINT "withdrawals_assigned_to_users_id_fk" FOREIGN KEY ("assigned_to") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "withdrawal_id_index" ON "withdrawal_transfers" USING btree ("withdrawal_id");--> statement-breakpoint
-CREATE INDEX "player_fullname_index" ON "withdrawals" USING btree ("player_fullname");
+CREATE INDEX "player_fullname_index" ON "withdrawals" USING btree ("player_fullname");--> statement-breakpoint
+CREATE INDEX "type_index" ON "withdrawals" USING btree ("type");--> statement-breakpoint
+CREATE INDEX "type_note_id_index" ON "withdrawals" USING btree ("type_note_id");--> statement-breakpoint
+CREATE INDEX "type_and_note_id_index" ON "withdrawals" USING btree ("type","type_note_id");
