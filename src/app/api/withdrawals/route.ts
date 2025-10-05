@@ -64,7 +64,7 @@ async function assignPersonnelFairly() {
           .then(res => res[0]);
 
         if (checkUser && checkUser.role.toLowerCase() === 'cekimpersoneli' && checkUser.activityStatus === 'online') {
-          await redis.lrem('active_personnel', 1, personnelId);
+          await redis.lrem('active_personnel', 0, personnelId);
           await redis.rpush('active_personnel', personnelId);
           await redis.set('last_assigned_personnel', personnelId);
           return personnelId;
@@ -73,7 +73,7 @@ async function assignPersonnelFairly() {
       return null;
     }
 
-    await redis.lpop('active_personnel');
+    await redis.lrem('active_personnel', 0, firstPersonnelId);
     await redis.rpush('active_personnel', firstPersonnelId);
     await redis.set('last_assigned_personnel', firstPersonnelId);
     

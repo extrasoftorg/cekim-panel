@@ -158,10 +158,10 @@ export async function POST(request: Request) {
       }
 
       if (targetUserRole === 'cekimpersoneli') {
+        await redis.lrem('active_personnel', 0, userId);
+        
         if (status === 'online') {
-          await redis.lpush('active_personnel', userId);
-        } else {
-          await redis.lrem('active_personnel', 0, userId);
+          await redis.rpush('active_personnel', userId);
         }
       }
     });
