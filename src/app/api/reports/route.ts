@@ -2,8 +2,9 @@
 
 import { NextResponse, NextRequest } from "next/server"
 import { db } from '@/db/index';
-import { reportsTable } from "@/db/schema";
+import { reportsTable, usersTable } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { eq } from "drizzle-orm";
 
 export async function GET(request: Request) {
     try {
@@ -19,9 +20,11 @@ export async function GET(request: Request) {
                 status: reportsTable.status,
                 createdBy: reportsTable.createdBy,
                 createdAt: reportsTable.createdAt,
-                updatedAt: reportsTable.updatedAt
+                updatedAt: reportsTable.updatedAt,
+                createdByUsername: usersTable.username
             })
             .from(reportsTable)
+            .leftJoin(usersTable, eq(reportsTable.createdBy, usersTable.id))
 
         return NextResponse.json(reports);
     } catch (error) {

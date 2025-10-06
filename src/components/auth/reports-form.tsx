@@ -128,6 +128,7 @@ interface Report {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  createdByUsername?: string;
   downloadUrl?: string;
 }
 
@@ -493,25 +494,26 @@ export default function ReportsForm() {
               <TableRow>
                 <TableHead className="table-head">ID</TableHead>
                 <TableHead className="table-head">Tarih</TableHead>
+                <TableHead className="table-head">Oluşturan</TableHead>
                 <TableHead className="table-head">Durum</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="table-cell text-center py-3 text-sm">
+                  <TableCell colSpan={4} className="table-cell text-center py-3 text-sm">
                     <LoadingSpinner />
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="table-cell text-center py-3 text-sm text-red-500">
+                  <TableCell colSpan={4} className="table-cell text-center py-3 text-sm text-red-500">
                     Hata: {(error as Error).message}
                   </TableCell>
                 </TableRow>
               ) : !data || data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="table-cell text-center py-3 text-sm">
+                  <TableCell colSpan={4} className="table-cell text-center py-3 text-sm">
                     Rapor bulunamadı.
                   </TableCell>
                 </TableRow>
@@ -551,6 +553,9 @@ export default function ReportsForm() {
                     </TableCell>
                     <TableCell className="table-cell">
                       {format(new Date(report.createdAt), 'dd.MM.yy HH:mm')}
+                    </TableCell>
+                    <TableCell className="table-cell">
+                      {report.createdByUsername || 'Bilinmiyor'}
                     </TableCell>
                     <TableCell className="table-cell">
                       {report.status === 'completed' ? 'Tamamlandı' : 'Bekliyor'}
