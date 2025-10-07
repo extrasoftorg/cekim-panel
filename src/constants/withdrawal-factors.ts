@@ -103,7 +103,7 @@ export const EvaluationFactorNotes: Record<string, string> = {
   'total_withdrawal_limit_by_deposit_amount_exceeded': 'Yatırıma bağlı maksimum çekim limiti aşıldı. Toplam çekim limiti: {totalLimit} TL, Kalan çekim limiti: {remainingLimit} TL',
   'late_request': 'Yeni gün talep.',
   'early_withdrawal_attempt': 'Son çekim tarihinden sonra çekim yapabileceği zaman: {canWithdrawAt}, Kalan süre: {remainingTime}',
-  'daily_withdrawal_limit_exceeded': 'Günlük kesili üye.',
+  'daily_withdrawal_limit_exceeded': 'Günlük çekim limiti aşıldı.',
   'requires_full_withdrawal': 'Tüm bakiye talep verebilirsiniz.',
   'payment_method_disabled': 'Ödeme yöntemi devre dışı. Farklı bir yöntem deneyiniz.',
   'casino_increasing_winning_ratio_exceeded': 'Casino oyunlarında alınan betler sonrası yansıyan kazanç, bet miktarının 2 katından az ve tüm bet işlemlerinin %50si veya daha fazlasını oluşturuyor.',
