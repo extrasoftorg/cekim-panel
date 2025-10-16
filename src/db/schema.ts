@@ -102,7 +102,8 @@ export const withdrawalsTable = pgTable("withdrawals", {
     message: text('message').notNull(),
     type: typeEnum('type'),
     typeNoteId: varchar('type_note_id', { length: 255 }),
-    
+    typeName: varchar('type_name', { length: 255 }),
+    typeAmount: doublePrecision('type_amount'),
     handlingBy: uuid('handling_by').references(() => usersTable.id, { onDelete: 'set null' }),
     assignedTo: uuid('assigned_to').references(() => usersTable.id, { onDelete: 'set null' }),
     assignedAt: timestamp('assigned_at', { withTimezone: true }),
