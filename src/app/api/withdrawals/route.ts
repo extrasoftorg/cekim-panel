@@ -12,9 +12,9 @@ import {
   generateAutoEvaluationFactorsCombinedNote 
 } from '@/constants/withdrawal-factors';
 
-function extractTypeAndNoteId(latestPlayerActivity: any): { type: string | null, typeNoteId: string | null, typeName: string | null, typeAmount: number | null } {
+function extractTypeAndNoteId(latestPlayerActivity: any): { type: string | null, typeNoteId: string | null, typeName: string | null, typeAmount: number | null, typeLastDepositAmount: number | null } {
   if (!latestPlayerActivity) {
-    return { type: null, typeNoteId: null, typeName: null, typeAmount: null };
+    return { type: null, typeNoteId: null, typeName: null, typeAmount: null, typeLastDepositAmount: null };
   }
   
   let type = latestPlayerActivity.type || null;
@@ -25,9 +25,14 @@ function extractTypeAndNoteId(latestPlayerActivity: any): { type: string | null,
   let typeNoteId: string | null = null;
   let typeName: string | null = null;
   let typeAmount: number | null = latestPlayerActivity.amount || null;
+  let typeLastDepositAmount: number | null = null;
 
   if (type === 'bonus' && latestPlayerActivity.data?.bonusName) {
     typeName = latestPlayerActivity.data.bonusName || null;
+  }
+
+  if (type === 'bonus' && latestPlayerActivity.data?.lastDepositAmount) {
+    typeLastDepositAmount = latestPlayerActivity.data.lastDepositAmount || null;
   }
 
   if (type === 'bonus' && latestPlayerActivity.data?.partnerId) {
@@ -37,7 +42,7 @@ function extractTypeAndNoteId(latestPlayerActivity: any): { type: string | null,
     typeNoteId = latestPlayerActivity.data.note;
   }
 
-  return { type, typeNoteId, typeName, typeAmount };
+  return { type, typeNoteId, typeName, typeAmount, typeLastDepositAmount };
 }
 
 async function assignPersonnelFairly() {
@@ -298,7 +303,7 @@ export async function POST(request: Request) {
     if (isAutoEvaluationRequest) {
       const { withdrawalInfo, evaluationFactors, metadata, latestPlayerActivity } = validatedData;
       
-      const { type, typeNoteId, typeName, typeAmount } = extractTypeAndNoteId(latestPlayerActivity);
+      const { type, typeNoteId, typeName, typeAmount, typeLastDepositAmount } = extractTypeAndNoteId(latestPlayerActivity);
 
       const BOT_USER_ID = 'bbe5c3c2-812d-4795-a87b-e01b859e13e4';
       const BOT_USERNAME = 'Çekim Botu';
@@ -392,6 +397,7 @@ export async function POST(request: Request) {
           typeNoteId: typeNoteId,
           typeName: typeName,
           typeAmount: typeAmount,
+          typeLastDepositAmount: typeLastDepositAmount,
         })
         .returning();
 
