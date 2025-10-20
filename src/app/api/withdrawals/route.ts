@@ -40,6 +40,7 @@ function extractTypeAndNoteId(latestPlayerActivity: any): { type: string | null,
   }
   else if (type === 'correction_up' && latestPlayerActivity.data?.note) {
     typeNoteId = latestPlayerActivity.data.note;
+    typeLastDepositAmount = latestPlayerActivity.data.lastDepositAmount || null;
   }
 
   return { type, typeNoteId, typeName, typeAmount, typeLastDepositAmount };
