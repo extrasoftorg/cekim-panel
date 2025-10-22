@@ -27,6 +27,7 @@ interface Withdrawal {
   withdrawalStatus: "approved" | "rejected"
   handlerUsername?: string | null
   hasTransfers: boolean
+  createdAt: string
 }
 
 interface TransferHistory {

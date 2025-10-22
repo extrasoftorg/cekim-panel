@@ -46,6 +46,7 @@ interface Withdrawal {
   withdrawalStatus: string
   handlingBy?: string | null
   handlerUsername?: string | null
+  createdAt: string
 }
 
 interface User {
@@ -1388,13 +1389,13 @@ export default function WithdrawPage() {
     }
     
     if (a.handlingBy === b.handlingBy) {
-      return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     }
     
     if (a.handlingBy === null && b.handlingBy !== null) return 1
     if (a.handlingBy !== null && b.handlingBy === null) return -1
     
-    return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   })
 
   const filteredOnlineUsers = onlineUsers.filter((user: User) => user.role !== "spectator")

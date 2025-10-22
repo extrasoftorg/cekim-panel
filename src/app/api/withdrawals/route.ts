@@ -214,6 +214,7 @@ export async function GET(request: Request) {
             handlingBy: withdrawalsTable.handlingBy,
             handlerUsername: usersTable.username,
             hasTransfers: sql<boolean>`false`.mapWith(Boolean),
+            createdAt: withdrawalsTable.createdAt,
           })
           .from(withdrawalsTable)
           .leftJoin(usersTable, eq(withdrawalsTable.handlingBy, usersTable.id))
@@ -237,6 +238,7 @@ export async function GET(request: Request) {
             handlingBy: withdrawalsTable.handlingBy,
             handlerUsername: usersTable.username,
             hasTransfers: sql<boolean>`COALESCE(transfer_counts.count, 0) > 0`.mapWith(Boolean),
+            createdAt: withdrawalsTable.createdAt,
           })
           .from(withdrawalsTable)
           .leftJoin(usersTable, eq(withdrawalsTable.handlingBy, usersTable.id))
