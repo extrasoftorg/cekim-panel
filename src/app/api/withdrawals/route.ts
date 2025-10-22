@@ -43,6 +43,10 @@ function extractTypeAndNoteId(latestPlayerActivity: any): { type: string | null,
     typeLastDepositAmount = latestPlayerActivity.data.lastDepositAmount || null;
   }
 
+  if (type === 'cashback' && latestPlayerActivity.data?.note) {
+    typeLastDepositAmount = latestPlayerActivity.data.lastDepositAmount || null;
+  }
+
   return { type, typeNoteId, typeName, typeAmount, typeLastDepositAmount };
 }
 
