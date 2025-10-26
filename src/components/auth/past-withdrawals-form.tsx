@@ -411,7 +411,7 @@ export default function PastWithdrawalsPage() {
                 <SelectItem value="Berkin">Berkin</SelectItem>
                 <SelectItem value="Yüce">Yüce</SelectItem>
                 <SelectItem value="Batuhan">Batuhan</SelectItem>
-                <SelectItem value="Çiğdem">Çiğdem</SelectItem>
+                <SelectItem value="Yiğit">Yiğit</SelectItem>
                 <SelectItem value="Serkan">Serkan</SelectItem>
                 <SelectItem value="Mert">Mert</SelectItem>
                 <SelectItem value="Soner">Soner</SelectItem>
